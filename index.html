@@ -1,0 +1,195 @@
+<!doctype html>
+<html>
+<head>
+<style>
+	body {
+		background-color: RGB(21,0,15); //black;
+	}
+	table, th, td {
+		border-collapse: collapse;
+		color: #e2e2e2;
+		font-family: Arial, Helvetica, sans-serif;
+		padding: 10px;
+	}
+	th, td {
+		border-bottom: 1px solid RGB(242, 79, 154);
+	}
+</style>
+<meta charset="UTF-8">
+<title>My Web Page</title>
+
+<script>
+
+let matches_list_output = "";
+let matches_array = [0];
+let players_array = [];
+let station_array = [];
+let bstring = "hi";
+let x = 0;
+
+
+class MatchObj {
+    constructor(id, p1_id, p2_id, state, p1_name, p2_name, p1_seed, p2_seed, station) {
+        this.match_id = id;
+        this.match_play1_id = p1_id;
+        this.match_play2_id = p2_id;
+        this.match_play1_name = p1_name;
+        this.match_play2_name = p2_name;
+        this.match_play1_seed = p1_seed;
+        this.match_play2_seed = p2_seed;
+        this.match_state = state;
+        this.match_station = station = 0;
+    }
+}
+
+class PlayerObj {
+    constructor(id, name, seed) {
+        this.player_id = id;
+        this.player_name = name;
+        this.player_seed = seed;
+    }
+}
+
+//Get List of all Player Names and Seeds
+function getPlayers() {
+    return new Promise((resolve, reject) => {
+      fetch('https://api.challonge.com/v1/tournaments/b697b0wu/participants.json?api_key=smrZWnrWB7KTLwRc7ZvllT0wjaw3nA3CIkCUwZJt')
+          .then((response) => {
+              return response.json();
+          })
+          .then((playerJson) => {
+              //console.log(playerJson);
+              for (const x in playerJson) {
+                  const newPlayer = new PlayerObj(
+                    playerJson[x].participant.id,
+                    playerJson[x].participant.name,
+                    playerJson[x].participant.seed
+                  );
+
+                  players_array[playerJson[x].participant.id] = newPlayer;
+                  //console.table(players_array);
+              }
+
+              resolve();
+              //  })
+              //  .catch((error) => {
+              //    console.error('Error:', error);
+          });
+    });
+}
+
+//Get List of all "Open" matches
+//state=all or state=open
+function getMatches() {
+  return new Promise((resolve, reject) => {
+    fetch('https://api.challonge.com/v1/tournaments/b697b0wu/matches.json?api_key=smrZWnrWB7KTLwRc7ZvllT0wjaw3nA3CIkCUwZJt&state=open')
+        .then(response => response.json())
+        .then((myJson) => {
+            //console.log(myJson);
+						matches_array = [];
+            for (const x in myJson) {
+                //constructor(id, p1_id, p2_id, p1_name, p2_name, p1_seed, p2_seed, state, station) {
+                matches_array.push(new MatchObj(myJson[x].match.id, myJson[x].match.player1_id, myJson[x].match.player2_id, myJson[x].match.state));
+            }
+
+						//console.table(matches_array);
+            //matches_list_output += "MatchID: " + myJson[x].match.id + " - " + myJson[x].match.player1_id + " vs. " + myJson[x].match.player2_id + " " + myJson[x].match.state + "<br>";
+            resolve();
+        });
+  });
+}
+
+function getBracket(){
+	return new Promise((resolve, reject) => {
+		fetch('https://challonge.com/b697b0wu')
+				.then(response => response.text())
+				.then(s2s => {
+					let re = new RegExp("Station (.*?),\"tournament_id", "g");
+					let reStation = new RegExp("^[A-Z]");
+					let reMatch = new RegExp("[0-9]+$");
+					let reResult = "";
+					let stat = "";
+					let match = "";
+					let mIndex = 0;
+					//let n = string2search.search(re);
+					//let n = re.exec(s2s);
+					while ((reResult = re.exec(s2s)) != null){
+						//console.log(reResult);
+						match = reMatch.exec(reResult[1])[0];
+						stat = reStation.exec(reResult[1])[0];
+						mIndex = matches_array.findIndex(x => x.match_id == match);
+						matches_array[mIndex].match_station = stat;
+						//console.log(match + " " + stat);
+						//console.log(matches_array[mIndex]);
+					}
+					resolve();
+				});
+	});
+}
+
+function finishMatchInfo() {
+    //Populate Match Array with Player Names
+		for (const x in matches_array) {
+    	matches_array[x].match_play1_name = players_array[matches_array[x].match_play1_id].player_name;
+	    matches_array[x].match_play1_seed = players_array[matches_array[x].match_play1_id].player_seed;
+	    matches_array[x].match_play2_name = players_array[matches_array[x].match_play2_id].player_name;
+	    matches_array[x].match_play2_seed = players_array[matches_array[x].match_play2_id].player_seed;
+		}
+
+		matches_list_output = "<center><table>";
+		matches_list_output += "<tr><th colspan=4><img src=\"MAD.png\"></th></tr>";
+		matches_list_output += "<tr><th colspan=4>Current Matches</th></tr>";
+
+		for (const x in matches_array) {
+			if(matches_array[x].match_station != 0){
+				matches_list_output += "<tr><td style=\"text-align: left; width: 150px\">" + matches_array[x].match_play1_name + " [" + matches_array[x].match_play1_seed +
+				"] </td><td style=\"width: 20px; text-align: center\"> vs. </td><td style=\"text-align: left; width: 150px\">" + matches_array[x].match_play2_name + " [" + matches_array[x].match_play2_seed +
+				"]</td><td>Station: " + matches_array[x].match_station + "</td></tr>";
+			}
+		}
+
+		matches_list_output += "</table>";
+		document.getElementById("matchlist").innerHTML = matches_list_output;
+		//console.table(matches_array);
+}
+
+async function pageLoad() {
+    await Promise.all([getPlayers(), getMatches()]);
+		await getBracket();
+		finishMatchInfo();
+		//console.log(bstring);
+//		console.log(matches_array.findIndex())
+		//console.log(matches_list_output);
+}
+
+async function pL() {
+    await Promise.all([getPlayers(), getMatches()]);
+		await getBracket();
+		finishMatchInfo();
+		setInterval(pageLoad, 10000);
+		//console.log(matches_list_output);
+}
+    //Promise.all([getPlayers(), getMatches()]).then(() => {
+      // players and matches is available
+      // getGames().then(() => {
+      // });
+    //});
+
+		/*
+		async function getData() {
+		  const res = await fetch('https://api.challonge.com/v1/tournaments/b697b0wu/participants.json?api_key=smrZWnrWB7KTLwRc7ZvllT0wjaw3nA3CIkCUwZJt');
+			const json = res.json();
+			return json;
+		}*/
+
+
+</script>
+<!--meta http-equiv="refresh" content="10"-->
+</head>
+
+<body onload="pL()">
+
+<p id="matchlist"></p>
+
+</body>
+</html>
