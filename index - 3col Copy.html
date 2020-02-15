@@ -4,8 +4,6 @@
 <style>
 	body {
 		background-color: RGB(21,0,15); //black;
-		background-image: url('background.jpg');
-		background-size: cover;
 	}
 	table, th, td {
 		border-collapse: collapse;
@@ -15,9 +13,10 @@
 	}
 	th, td {
 		border-bottom: 1px solid RGB(242, 79, 154);
+
 	}
 	td {
-		font-size: 1.3em;
+		font-size: 1.1em;
 	}
 </style>
 <meta charset="UTF-8">
@@ -31,7 +30,6 @@ let players_array = [];
 let station_array = [];
 let bstring = "hi";
 let x = 0;
-
 
 class MatchObj {
     constructor(id, p1_id, p2_id, state, p1_name, p2_name, p1_seed, p2_seed, station) {
@@ -134,19 +132,61 @@ function finishMatchInfo() {
 	    matches_array[x].match_play2_seed = players_array[matches_array[x].match_play2_id].player_seed;
 		}
 
-		matches_list_output = "<center><table>";
+		matches_list_output =  "<center><table style=\"border: none\">";
+		matches_list_output += "<tr style=\"border: none\">";
+
+		//////////////////////////////////////////////////////
+		matches_list_output += "<td style=\"width: 400px\"><center>";
+		matches_list_output += "<table>";
+		matches_list_output += "<tr></tr><tr></tr>";
+		matches_list_output += "<tr><th>Bounties</th></tr>";
+		matches_list_output += "<tr><td>Player 1</td></tr>";
+		matches_list_output += "<tr><td>Player 1</td></tr>";
+		matches_list_output += "<tr><td>Player 1</td></tr>";
+		matches_list_output += "<tr><td>Player 1</td></tr>";
+		matches_list_output += "<tr><td>Player 1</td></tr>";
+		matches_list_output += "</table>";
+		matches_list_output += "</td>";
+		//////////////////////////////////////////////////////
+
+		//////////////////////////////////////////////////////
+		matches_list_output += "<td style=\"width: 700px\"><center>";
+
+		matches_list_output += "<table>";
 		matches_list_output += "<tr><th colspan=4><img src=\"MAD.png\"></th></tr>";
 		matches_list_output += "<tr><th colspan=4>Current Matches</th></tr>";
-
 		for (const x in matches_array) {
 			if(matches_array[x].match_station != 0){
-				matches_list_output += "<tr><td style=\"text-align: left; width: 220px\">" + matches_array[x].match_play1_name + " [" + matches_array[x].match_play1_seed +
-				"] </td><td style=\"width: 20px; text-align: center\"> vs. </td><td style=\"text-align: left; width: 220px\">" + matches_array[x].match_play2_name + " [" +
-				matches_array[x].match_play2_seed + "]</td><td>Station: " + matches_array[x].match_station + "</td></tr>";
+				matches_list_output += "<tr>";
+				matches_list_output += "<td style=\"text-align: left; width: 200px\">" + matches_array[x].match_play1_name + " [" + matches_array[x].match_play1_seed +
+				"] </td><td style=\"width: 20px; text-align: center\"> vs. </td><td style=\"text-align: left; width: 200px\">" + matches_array[x].match_play2_name + " [" + matches_array[x].match_play2_seed +
+				"]</td><td>Station: " + matches_array[x].match_station + "</td>";
+				matches_list_output += "</tr>";
 			}
 		}
-
+		matches_list_output += "</td>";
 		matches_list_output += "</table>";
+
+		matches_list_output += "</td>";
+		//////////////////////////////////////////////////////
+
+		//////////////////////////////////////////////////////
+		matches_list_output += "<td style=\"width: 400px\"><center>";
+		matches_list_output += "<table>";
+		matches_list_output += "<tr></tr><tr></tr>";
+		matches_list_output += "<tr><th>Upcoming Matches</th></tr>";
+		matches_list_output += "<tr><td>Player 1</td></tr>";
+		matches_list_output += "<tr><td>Player 1</td></tr>";
+		matches_list_output += "<tr><td>Player 1</td></tr>";
+		matches_list_output += "<tr><td>Player 1</td></tr>";
+		matches_list_output += "<tr><td>Player 1</td></tr>";
+		matches_list_output += "</table>";
+		matches_list_output += "</td>";
+		//////////////////////////////////////////////////////
+
+		matches_list_output += "</tr></table>";
+
+
 
 		document.getElementById("matchlist").innerHTML = matches_list_output;
 }
