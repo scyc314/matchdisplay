@@ -56,6 +56,7 @@ let players_array = [];
 let station_array = [];
 let bstring = "hi";
 let x = 0;
+const API_KEY = "api_key=smrZWnrWB7KTLwRc7ZvllT0wjaw3nA3CIkCUwZJt";
 
 
 /* Get the documentElement (<html>) to display the page in fullscreen */
@@ -113,7 +114,7 @@ class PlayerObj {
 //Get List of all Player Names and Seeds
 function getPlayers() {
     return new Promise((resolve, reject) => {
-      fetch('https://api.challonge.com/v1/tournaments/b697b0wu/participants.json?api_key=smrZWnrWB7KTLwRc7ZvllT0wjaw3nA3CIkCUwZJt')
+      fetch('https://api.challonge.com/v1/tournaments/b697b0wu/participants.json?' + API_KEY)
           .then((response) => {
               return response.json();
           })
@@ -142,7 +143,7 @@ function getPlayers() {
 //state=all or state=open
 function getMatches() {
   return new Promise((resolve, reject) => {
-    fetch('https://api.challonge.com/v1/tournaments/b697b0wu/matches.json?api_key=smrZWnrWB7KTLwRc7ZvllT0wjaw3nA3CIkCUwZJt&state=open')
+    fetch('https://api.challonge.com/v1/tournaments/b697b0wu/matches.json?state=open&' + API_KEY)
         .then(response => response.json())
         .then((myJson) => {
             //console.log(myJson);
@@ -223,8 +224,6 @@ function finishMatchInfo() {
 					}
 					j++;
 			}
-			console.log(j);
-
 		}
 
 		matches_list_output += "<tr><td colspan=4 style=\"text-align: center; padding: 6px\"></td></tr>";
@@ -240,7 +239,7 @@ async function pageLoad() {
 }
 
 async function pL() {
-    await Promise.all([getPlayers(), getMatches()]);
+		await Promise.all([getPlayers(), getMatches()]);
 		await getBracket();
 		finishMatchInfo();
 		setInterval(pageLoad, 10000);
