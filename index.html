@@ -249,12 +249,12 @@ function finishMatchInfo() {
 			let j = 0;
 			for (const y in matches_array) {
 				if(matches_array[y].match_station == 0){
-						if(j%2 == 0 && j < 18){
+						if(j%2 == 0 && j < 24){
 							matches_list_output += "<tr><td colspan=2 class=\"smalltext\" style=\"padding-left: 5px\">" + matches_array[y].match_play1_name + " [" + matches_array[y].match_play1_seed +
 							"] vs. " + matches_array[y].match_play2_name + " [" +
 							matches_array[y].match_play2_seed + "]</td>";
 						}
-						if(j%2 == 1 && j < 18){
+						if(j%2 == 1 && j < 24){
 							matches_list_output += "<td colspan=2 class=\"smalltext\" style=\"padding-left: 50px\">" + matches_array[y].match_play1_name + " [" + matches_array[y].match_play1_seed +
 							"] vs. " + matches_array[y].match_play2_name + " [" +
 							matches_array[y].match_play2_seed + "]</td></tr>";
