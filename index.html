@@ -10,7 +10,7 @@
     background: transparent;  /* Optional: just make scrollbar invisible */
 	}
 	body {
-		background-color: RGB(21,0,15); //black;
+		background-color: RGB(21,0,15); /*black;*/
 		background-image: url('background.jpg');
 		background-size: cover;
 	}
@@ -41,6 +41,15 @@
 		padding: 2px;
 		border: none;
 	}
+	.regplayers {
+		font-size: 1.0em;
+		text-align: left;
+		padding-top: 1px;
+		padding-left: 20px;
+		padding-right: 20px;
+		border: none;
+		width: 250px;
+	}
 	th {
 		font-size: 1.5em;
 	}
@@ -57,7 +66,7 @@ let station_array = [];
 let bstring = "hi";
 let x = 0;
 const API_KEY = "api_key=smrZWnrWB7KTLwRc7ZvllT0wjaw3nA3CIkCUwZJt";
-
+const TOURNAMENT_ID = "b697b0wu";
 
 /* Get the documentElement (<html>) to display the page in fullscreen */
 var elem = document.documentElement;
@@ -88,7 +97,6 @@ function closeFullscreen() {
   }
 }
 
-
 class MatchObj {
     constructor(id, p1_id, p2_id, state, p1_name, p2_name, p1_seed, p2_seed, station) {
         this.match_id = id;
@@ -114,7 +122,7 @@ class PlayerObj {
 //Get List of all Player Names and Seeds
 function getPlayers() {
     return new Promise((resolve, reject) => {
-      fetch('https://api.challonge.com/v1/tournaments/b697b0wu/participants.json?' + API_KEY)
+      fetch('https://api.challonge.com/v1/tournaments/' + TOURNAMENT_ID + '/participants.json?' + API_KEY)
           .then((response) => {
               return response.json();
           })
@@ -143,7 +151,7 @@ function getPlayers() {
 //state=all or state=open
 function getMatches() {
   return new Promise((resolve, reject) => {
-    fetch('https://api.challonge.com/v1/tournaments/b697b0wu/matches.json?state=open&' + API_KEY)
+    fetch('https://api.challonge.com/v1/tournaments/' + TOURNAMENT_ID + '/matches.json?state=open&' + API_KEY)
         .then(response => response.json())
         .then((myJson) => {
             //console.log(myJson);
@@ -160,7 +168,7 @@ function getMatches() {
 
 function getBracket(){
 	return new Promise((resolve, reject) => {
-		fetch('https://challonge.com/b697b0wu')
+		fetch('https://challonge.com/' + TOURNAMENT_ID)
 				.then(response => response.text())
 				.then(s2s => {
 					let re = new RegExp("Station (.*?),\"tournament_id", "g");
@@ -183,51 +191,81 @@ function getBracket(){
 }
 
 function finishMatchInfo() {
-    //Populate Match Array with Player Names
-		for (const x in matches_array) {
-    	matches_array[x].match_play1_name = players_array[matches_array[x].match_play1_id].player_name;
-	    matches_array[x].match_play1_seed = players_array[matches_array[x].match_play1_id].player_seed;
-	    matches_array[x].match_play2_name = players_array[matches_array[x].match_play2_id].player_name;
-	    matches_array[x].match_play2_seed = players_array[matches_array[x].match_play2_id].player_seed;
-		}
 
-		matches_list_output = "<center><table>";
-		matches_list_output += "<tr><th colspan=4><a href=\"#\" onclick=\"openFullscreen()\"><img src=\"MAD.png\"></a></th></tr>";
-		matches_list_output += "<tr><th colspan=4>Current Matches</th></tr>";
 
-		for (const x in matches_array) {
-			if(matches_array[x].match_station != 0){
-				matches_list_output += "<tr><td class=\"player\">" + matches_array[x].match_play1_name + " [" + matches_array[x].match_play1_seed +
-				"] </td><td style=\"width: 20px; text-align: center\"> vs. </td><td class=\"player\">" + matches_array[x].match_play2_name + " [" +
-				matches_array[x].match_play2_seed + "]</td><td class=\"station\">Station: " + matches_array[x].match_station + "</td></tr>";
+		if(!matches_array.length) {
+			console.log("Not started");
+			matches_list_output = "<center><table>";
+			matches_list_output += "<tr><th colspan=6><a href=\"#\" onclick=\"openFullscreen()\"><img src=\"MAD.png\"></a></th></tr>";
+			matches_list_output += "<tr><th colspan=6 >Tournament Starting Soon</th></tr>";
+			matches_list_output += "<tr><td colspan=6 align=center>Registered Players</td></tr>";
+
+			let j = 1;
+			for (const y in players_array) {
+				//if(matches_array[y].match_station == 0){
+
+						if(j%3 == 0){
+							matches_list_output += "<td colspan=2 class=\"regplayers\">" + players_array[y].player_name + "</td></tr>";
+							j = j - 3;
+						}
+						else if(j%2 == 0){
+							matches_list_output += "<td colspan=2 class=\"regplayers\">" + players_array[y].player_name + "</td>";
+						}
+						else if(j%2 == 1){
+							matches_list_output += "<tr><td colspan=2 class=\"regplayers\">" + players_array[y].player_name + "</td>";
+						}
+						j++;
+				//}
 			}
+			matches_list_output += "<tr><td colspan=6 style=\"text-align: center; padding: 6px\"></td></tr>";
+			matches_list_output += "</table>";
 		}
-
-		matches_list_output += "<tr>";
-
-		let j = 0;
-
-		matches_list_output += "<tr><td colspan=4 style=\"text-align: center; padding: 10px; font-weight: bold\"></td></tr>";
-		matches_list_output += "<tr><td colspan=4 style=\"text-align: center; padding: 6px; font-weight: bold\">Upcoming Matches</td></tr>";
-
-		for (const y in matches_array) {
-			if(matches_array[y].match_station == 0){
-					if(j%2 == 0){
-						matches_list_output += "<tr><td colspan=2 class=\"smalltext\" style=\"padding-left: 5px\">" + matches_array[y].match_play1_name + " [" + matches_array[y].match_play1_seed +
-						"] vs. " + matches_array[y].match_play2_name + " [" +
-						matches_array[y].match_play2_seed + "]</td>";
-					}
-					if(j%2 == 1){
-						matches_list_output += "<td colspan=2 class=\"smalltext\" style=\"padding-left: 50px\">" + matches_array[y].match_play1_name + " [" + matches_array[y].match_play1_seed +
-						"] vs. " + matches_array[y].match_play2_name + " [" +
-						matches_array[y].match_play2_seed + "]</td></tr>";
-					}
-					j++;
+		else {
+	    //Populate Match Array with Player Names
+			for (const x in matches_array) {
+	    	matches_array[x].match_play1_name = players_array[matches_array[x].match_play1_id].player_name;
+		    matches_array[x].match_play1_seed = players_array[matches_array[x].match_play1_id].player_seed;
+		    matches_array[x].match_play2_name = players_array[matches_array[x].match_play2_id].player_name;
+		    matches_array[x].match_play2_seed = players_array[matches_array[x].match_play2_id].player_seed;
 			}
-		}
 
-		matches_list_output += "<tr><td colspan=4 style=\"text-align: center; padding: 6px\"></td></tr>";
-		matches_list_output += "</table>";
+			matches_list_output = "<center><table>";
+			matches_list_output += "<tr><th colspan=4><a href=\"#\" onclick=\"openFullscreen()\"><img src=\"MAD.png\"></a></th></tr>";
+			matches_list_output += "<tr><th colspan=4>Current Matches</th></tr>";
+
+			for (const x in matches_array) {
+				if(matches_array[x].match_station != 0){
+					matches_list_output += "<tr><td class=\"player\">" + matches_array[x].match_play1_name + " [" + matches_array[x].match_play1_seed +
+					"] </td><td style=\"width: 20px; text-align: center\"> vs. </td><td class=\"player\">" + matches_array[x].match_play2_name + " [" +
+					matches_array[x].match_play2_seed + "]</td><td class=\"station\">Station: " + matches_array[x].match_station + "</td></tr>";
+				}
+			}
+
+			matches_list_output += "<tr>";
+
+			matches_list_output += "<tr><td colspan=4 style=\"text-align: center; padding: 10px; font-weight: bold\"></td></tr>";
+			matches_list_output += "<tr><td colspan=4 style=\"text-align: center; padding: 6px; font-weight: bold\">Upcoming Matches</td></tr>";
+
+			let j = 0;
+			for (const y in matches_array) {
+				if(matches_array[y].match_station == 0){
+						if(j%2 == 0 && j < 18){
+							matches_list_output += "<tr><td colspan=2 class=\"smalltext\" style=\"padding-left: 5px\">" + matches_array[y].match_play1_name + " [" + matches_array[y].match_play1_seed +
+							"] vs. " + matches_array[y].match_play2_name + " [" +
+							matches_array[y].match_play2_seed + "]</td>";
+						}
+						if(j%2 == 1 && j < 18){
+							matches_list_output += "<td colspan=2 class=\"smalltext\" style=\"padding-left: 50px\">" + matches_array[y].match_play1_name + " [" + matches_array[y].match_play1_seed +
+							"] vs. " + matches_array[y].match_play2_name + " [" +
+							matches_array[y].match_play2_seed + "]</td></tr>";
+						}
+						j++;
+				}
+			}
+
+			matches_list_output += "<tr><td colspan=4 style=\"text-align: center; padding: 6px\"></td></tr>";
+			matches_list_output += "</table>";
+		}
 
 		document.getElementById("matchlist").innerHTML = matches_list_output;
 }
