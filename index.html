@@ -5,6 +5,10 @@
 	body,html {
 		height: 100%;
 	}
+	.noscroll::-webkit-scrollbar {
+    width: 0px;  /* Remove scrollbar space */
+    background: transparent;  /* Optional: just make scrollbar invisible */
+	}
 	body {
 		background-color: RGB(21,0,15); //black;
 		background-image: url('background.jpg');
@@ -14,13 +18,28 @@
 		border-collapse: collapse;
 		color: #e2e2e2;
 		font-family: Arial, Helvetica, sans-serif;
-		padding: 15px;
+		padding: 8px;
+		text-shadow: 0px 0px 2px #F24F9A;
 	}
 	th, td {
 		border-bottom: 1px solid RGB(242, 79, 154);
 	}
-	td {
-		font-size: 1.3em;
+	.player {
+		font-size: 1.2em;
+		text-align: left;
+		width: 250px;
+		text-shadow: 0px 0px 2px #F24F9A;
+	}
+	.station {
+		font-size: 1.2em;
+		text-align: left;
+		text-shadow: 0px 0px 2px #F24F9A;
+	}
+	.smalltext {
+		font-size: 1.0em;
+		text-align: left;
+		padding: 2px;
+		border: none;
 	}
 	th {
 		font-size: 1.5em;
@@ -37,6 +56,36 @@ let players_array = [];
 let station_array = [];
 let bstring = "hi";
 let x = 0;
+
+
+/* Get the documentElement (<html>) to display the page in fullscreen */
+var elem = document.documentElement;
+
+/* View in fullscreen */
+function openFullscreen() {
+  if (elem.requestFullscreen) {
+    elem.requestFullscreen();
+  } else if (elem.mozRequestFullScreen) { /* Firefox */
+    elem.mozRequestFullScreen();
+  } else if (elem.webkitRequestFullscreen) { /* Chrome, Safari and Opera */
+    elem.webkitRequestFullscreen();
+  } else if (elem.msRequestFullscreen) { /* IE/Edge */
+    elem.msRequestFullscreen();
+  }
+}
+
+/* Close fullscreen */
+function closeFullscreen() {
+  if (document.exitFullscreen) {
+    document.exitFullscreen();
+  } else if (document.mozCancelFullScreen) { /* Firefox */
+    document.mozCancelFullScreen();
+  } else if (document.webkitExitFullscreen) { /* Chrome, Safari and Opera */
+    document.webkitExitFullscreen();
+  } else if (document.msExitFullscreen) { /* IE/Edge */
+    document.msExitFullscreen();
+  }
+}
 
 
 class MatchObj {
@@ -107,6 +156,7 @@ function getMatches() {
   });
 }
 
+
 function getBracket(){
 	return new Promise((resolve, reject) => {
 		fetch('https://challonge.com/b697b0wu')
@@ -141,17 +191,43 @@ function finishMatchInfo() {
 		}
 
 		matches_list_output = "<center><table>";
-		matches_list_output += "<tr><th colspan=4><img src=\"MAD.png\"></th></tr>";
+		matches_list_output += "<tr><th colspan=4><a href=\"#\" onclick=\"openFullscreen()\"><img src=\"MAD.png\"></a></th></tr>";
 		matches_list_output += "<tr><th colspan=4>Current Matches</th></tr>";
 
 		for (const x in matches_array) {
 			if(matches_array[x].match_station != 0){
-				matches_list_output += "<tr><td style=\"text-align: left; width: 220px\">" + matches_array[x].match_play1_name + " [" + matches_array[x].match_play1_seed +
-				"] </td><td style=\"width: 20px; text-align: center\"> vs. </td><td style=\"text-align: left; width: 220px\">" + matches_array[x].match_play2_name + " [" +
-				matches_array[x].match_play2_seed + "]</td><td>Station: " + matches_array[x].match_station + "</td></tr>";
+				matches_list_output += "<tr><td class=\"player\">" + matches_array[x].match_play1_name + " [" + matches_array[x].match_play1_seed +
+				"] </td><td style=\"width: 20px; text-align: center\"> vs. </td><td class=\"player\">" + matches_array[x].match_play2_name + " [" +
+				matches_array[x].match_play2_seed + "]</td><td class=\"station\">Station: " + matches_array[x].match_station + "</td></tr>";
 			}
 		}
 
+		matches_list_output += "<tr>";
+
+		let j = 0;
+
+		matches_list_output += "<tr><td colspan=4 style=\"text-align: center; padding: 10px; font-weight: bold\"></td></tr>";
+		matches_list_output += "<tr><td colspan=4 style=\"text-align: center; padding: 6px; font-weight: bold\">Upcoming Matches</td></tr>";
+
+		for (const y in matches_array) {
+			if(matches_array[y].match_station == 0){
+					if(j%2 == 0){
+						matches_list_output += "<tr><td colspan=2 class=\"smalltext\" style=\"padding-left: 5px\">" + matches_array[y].match_play1_name + " [" + matches_array[y].match_play1_seed +
+						"] vs. " + matches_array[y].match_play2_name + " [" +
+						matches_array[y].match_play2_seed + "]</td>";
+					}
+					if(j%2 == 1){
+						matches_list_output += "<td colspan=2 class=\"smalltext\" style=\"padding-left: 50px\">" + matches_array[y].match_play1_name + " [" + matches_array[y].match_play1_seed +
+						"] vs. " + matches_array[y].match_play2_name + " [" +
+						matches_array[y].match_play2_seed + "]</td></tr>";
+					}
+					j++;
+			}
+			console.log(j);
+
+		}
+
+		matches_list_output += "<tr><td colspan=4 style=\"text-align: center; padding: 6px\"></td></tr>";
 		matches_list_output += "</table>";
 
 		document.getElementById("matchlist").innerHTML = matches_list_output;
@@ -187,7 +263,7 @@ async function pL() {
 <!--meta http-equiv="refresh" content="10"-->
 </head>
 
-<body onload="pL()">
+<body onload="pL()" class="noscroll">
 
 <p id="matchlist"></p>
 
