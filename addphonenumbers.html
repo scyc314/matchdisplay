@@ -45,21 +45,28 @@
 		font-size: 1.0em;
 		text-align: left;
 		padding-top: 1px;
-		padding-left: 20px;
-		padding-right: 20px;
+		padding-left: 5px;
+		padding-right: 5px;
 		border: none;
-		width: 250px;
+		/*width: 150px;*/
 	}
 	th {
 		font-size: 1.5em;
 	}
+  input {
+    border: 1px solid #888888;
+    padding: 5px;
+    background-color: black;
+    color: #888888;
+
+  }
 </style>
 <meta charset="UTF-8">
 <title>MAD Smash STL</title>
 
 <script>
 
-let matches_list_output = "";
+let pgoutput = "";
 let matches_array = [0];
 let players_array = [];
 let station_array = [];
@@ -139,9 +146,14 @@ function getPlayers() {
                   );
 
 									//Write player name and seet to players_array (index is the player id from Challonge)
-                  players_array[playerJson[x].participant.id] = newPlayer;
+                  //players_array[playerJson[x].participant.id] = newPlayer;
+                  players_array[x] = newPlayer;
                   //console.table(players_array);
               }
+
+              console.time("sort");
+              players_array.sort((a, b) => (a.player_name > b.player_name) ? 1 : -1);
+              console.timeEnd("sort");
 
               resolve();
               //  })
@@ -170,7 +182,6 @@ function getMatches() {
   });
 }
 
-
 function getBracketAssignStations(){
 	return new Promise((resolve, reject) => {
 		//Get bracket layout from challonge
@@ -197,37 +208,37 @@ function getBracketAssignStations(){
 	});
 }
 
-function finishMatchInfo() {
+function displayPlayers() {
+    let chal_url = "https://api.challonge.com/v1/tournaments/" + TOURNAMENT_ID + "/participants/";
 
+		if(!players_array.length) {
+			console.log("No Players Registered");
+			pgoutput = "<center><table>";
+			pgoutput += "<tr><th colspan=4><a href=\"#\" onclick=\"openFullscreen()\"><img src=\"MAD.png\"></a></th></tr>";
+			pgoutput += "<tr><th colspan=4>No Players Registered</th></tr>";
+    }
+    else {
+			let j = 0;
+      pgoutput = "<center><table>";
+			pgoutput += "<tr><th colspan=5><a href=\"#\" onclick=\"openFullscreen()\"><img src=\"MAD.png\"></a></th></tr>";
+			pgoutput += "<tr><th colspan=5>Registered Players</th></tr><tr><td class=\"regplayers\"></td></tr>";
 
-		if(!matches_array.length) {
-			console.log("Matches Not started");
-			matches_list_output = "<center><table>";
-			matches_list_output += "<tr><th colspan=6><a href=\"#\" onclick=\"openFullscreen()\"><img src=\"MAD.png\"></a></th></tr>";
-			matches_list_output += "<tr><th colspan=6 >Tournament Starting Soon</th></tr>";
-			matches_list_output += "<tr><td colspan=6 align=center>Registered Players</td></tr>";
-
-			let j = 1;
 			for (const y in players_array) {
-				//if(matches_array[y].match_station == 0){
 
-						if(j%3 == 0){
-							matches_list_output += "<td colspan=2 class=\"regplayers\">" + players_array[y].player_name + "</td></tr>";
-							j = j - 3;
-						}
-						else if(j%2 == 0){
-							matches_list_output += "<td colspan=2 class=\"regplayers\">" + players_array[y].player_name + "</td>";
-						}
-						else if(j%2 == 1){
-							matches_list_output += "<tr><td colspan=2 class=\"regplayers\">" + players_array[y].player_name + "</td>";
-						}
-						j++;
+        let pid = players_array[y].player_id;
+        let chal_submit_url = chal_url + pid + ".json?" + API_KEY;
+			     pgoutput += "<tr><td colspan=1 class=\"regplayers\">" + players_array[y].player_name + "</td>" +
+                       "<td colspan=1 class=\"regplayers\">" +
+                       "<form id=\"" + pid + "\" action=\"" + chal_submit_url + "\"><input type=\"text\" size=\"10\" name=\"misc\"><input type=\"submit\" value=\"Save\"></form></td>"
+                       "<td colspan=1 class=\"regplayers\"></td></tr>";
+
 				//}
 			}
-			matches_list_output += "<tr><td colspan=6 style=\"text-align: center; padding: 6px\"></td></tr>";
-			matches_list_output += "</table>";
+			pgoutput += "<tr><td colspan=4 style=\"text-align: center; padding: 6px\"></td></tr>";
+			pgoutput += "</table>";
 		}
-		else {
+
+/*		else {
 			//console.time("outputsort");
 			//Populate Match Array with player names and seeds
 			for (const x in matches_array) {
@@ -241,13 +252,13 @@ function finishMatchInfo() {
 			matches_array.sort((a, b) => (a.match_station > b.match_station) ? 1 : -1);
 
 			//Write html for current matches (only those with a station id assigned)
-			matches_list_output = "<center><table>";
-			matches_list_output += "<tr><th colspan=4><a href=\"#\" onclick=\"openFullscreen()\"><img src=\"MAD.png\"></a></th></tr>";
-			matches_list_output += "<tr><th colspan=4>Current Matches</th></tr>";
+			pgoutput = "<center><table>";
+			pgoutput += "<tr><th colspan=4><a href=\"#\" onclick=\"openFullscreen()\"><img src=\"MAD.png\"></a></th></tr>";
+			pgoutput += "<tr><th colspan=4>Current Matches</th></tr>";
 
 			for (const x in matches_array) {
 				if(matches_array[x].match_station != 0){
-					matches_list_output += "<tr><td class=\"player\">" + matches_array[x].match_play1_name + " [" + matches_array[x].match_play1_seed +
+					pgoutput += "<tr><td class=\"player\">" + matches_array[x].match_play1_name + " [" + matches_array[x].match_play1_seed +
 					"] </td><td style=\"width: 20px; text-align: center\"> vs. </td><td class=\"player\">" + matches_array[x].match_play2_name + " [" +
 					matches_array[x].match_play2_seed + "]</td><td class=\"station\">Station: " + matches_array[x].match_station + "</td></tr>";
 				}
@@ -257,20 +268,20 @@ function finishMatchInfo() {
 			matches_array.sort((a, b) => (a.match_sugg_order > b.match_sugg_order) ? 1 : -1);
 
 			//Write html for upcoming matches (open matches with no station id assigned)
-			matches_list_output += "<tr>";
-			matches_list_output += "<tr><td colspan=4 style=\"text-align: center; padding: 10px; font-weight: bold\"></td></tr>";
-			matches_list_output += "<tr><td colspan=4 style=\"text-align: center; padding: 6px; font-weight: bold\">Upcoming Matches</td></tr>";
+			pgoutput += "<tr>";
+			pgoutput += "<tr><td colspan=4 style=\"text-align: center; padding: 10px; font-weight: bold\"></td></tr>";
+			pgoutput += "<tr><td colspan=4 style=\"text-align: center; padding: 6px; font-weight: bold\">Upcoming Matches</td></tr>";
 
 			let j = 0;
 			for (const y in matches_array) {
 				if(matches_array[y].match_station == 0){
 						if(j%2 == 0 && j < 24){
-							matches_list_output += "<tr><td colspan=2 class=\"smalltext\" style=\"padding-left: 5px\">" + matches_array[y].match_play1_name + " [" + matches_array[y].match_play1_seed +
+							pgoutput += "<tr><td colspan=2 class=\"smalltext\" style=\"padding-left: 5px\">" + matches_array[y].match_play1_name + " [" + matches_array[y].match_play1_seed +
 							"] vs. " + matches_array[y].match_play2_name + " [" +
 							matches_array[y].match_play2_seed + "]</td>";
 						}
 						if(j%2 == 1 && j < 24){
-							matches_list_output += "<td colspan=2 class=\"smalltext\" style=\"padding-left: 50px\">" + matches_array[y].match_play1_name + " [" + matches_array[y].match_play1_seed +
+							pgoutput += "<td colspan=2 class=\"smalltext\" style=\"padding-left: 50px\">" + matches_array[y].match_play1_name + " [" + matches_array[y].match_play1_seed +
 							"] vs. " + matches_array[y].match_play2_name + " [" +
 							matches_array[y].match_play2_seed + "]</td></tr>";
 						}
@@ -278,26 +289,26 @@ function finishMatchInfo() {
 				}
 			}
 
-			matches_list_output += "<tr><td colspan=4 style=\"text-align: center; padding: 6px\"></td></tr>";
-			matches_list_output += "</table>";
+			pgoutput += "<tr><td colspan=4 style=\"text-align: center; padding: 6px\"></td></tr>";
+			pgoutput += "</table>";
 		}
-
-		document.getElementById("matchlist").innerHTML = matches_list_output;
+*/
+		document.getElementById("matchlist").innerHTML = pgoutput;
 
 		//console.timeEnd("outputsort");
 }
 
 async function pageLoad() {
     await Promise.all([getPlayers(), getMatches()]);
-		await getBracketAssignStations();
-		finishMatchInfo();
+		//await getBracketAssignStations();
+		displayPlayers();
 }
 
 async function pL() {
 		await Promise.all([getPlayers(), getMatches()]);
-		await getBracketAssignStations();
-		finishMatchInfo();
-		setInterval(pageLoad, 5000);
+		//await getBracketAssignStations();
+		displayPlayers();
+		//setInterval(pageLoad, 5000);
 }
     //Promise.all([getPlayers(), getMatches()]).then(() => {
       // players and matches is available

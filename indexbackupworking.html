@@ -113,11 +113,10 @@ class MatchObj {
 }
 
 class PlayerObj {
-    constructor(id, name, seed, misc) {
+    constructor(id, name, seed) {
         this.player_id = id;
         this.player_name = name;
         this.player_seed = seed;
-				this.player_txtfield = misc;
     }
 }
 
@@ -129,16 +128,14 @@ function getPlayers() {
               return response.json();
           })
           .then((playerJson) => {
-              //console.log(playerJson);
+              console.log(playerJson);
               for (const x in playerJson) {
                   const newPlayer = new PlayerObj(
                     playerJson[x].participant.id,
                     playerJson[x].participant.name,
-                    playerJson[x].participant.seed,
-										playerJson[x].participant.misc
+                    playerJson[x].participant.seed
                   );
 
-									//Write player name and seet to players_array (index is the player id from Challonge)
                   players_array[playerJson[x].participant.id] = newPlayer;
                   //console.table(players_array);
               }
@@ -158,7 +155,7 @@ function getMatches() {
     fetch('https://api.challonge.com/v1/tournaments/' + TOURNAMENT_ID + '/matches.json?state=open&' + API_KEY)
         .then(response => response.json())
         .then((myJson) => {
-            //console.log(myJson);
+            console.log(myJson);
 						matches_array = [];
             for (const x in myJson) {
                 //constructor(id, p1_id, p2_id, p1_name, p2_name, p1_seed, p2_seed, state, station, suggested_order) {
@@ -171,9 +168,8 @@ function getMatches() {
 }
 
 
-function getBracketAssignStations(){
+function getBracket(){
 	return new Promise((resolve, reject) => {
-		//Get bracket layout from challonge
 		fetch('https://challonge.com/' + TOURNAMENT_ID)
 				.then(response => response.text())
 				.then(s2s => {
@@ -184,7 +180,6 @@ function getBracketAssignStations(){
 					let stat = "";
 					let match = "";
 					let mIndex = 0;
-					//Copy station extract into matches_array
 					while ((reResult = re.exec(s2s)) != null){
 						//console.log(reResult);
 						match = reMatch.exec(reResult[1])[0];
@@ -201,7 +196,7 @@ function finishMatchInfo() {
 
 
 		if(!matches_array.length) {
-			console.log("Matches Not started");
+			console.log("Not started");
 			matches_list_output = "<center><table>";
 			matches_list_output += "<tr><th colspan=6><a href=\"#\" onclick=\"openFullscreen()\"><img src=\"MAD.png\"></a></th></tr>";
 			matches_list_output += "<tr><th colspan=6 >Tournament Starting Soon</th></tr>";
@@ -228,7 +223,6 @@ function finishMatchInfo() {
 			matches_list_output += "</table>";
 		}
 		else {
-			//console.time("outputsort");
 			//Populate Match Array with player names and seeds
 			for (const x in matches_array) {
 	    	matches_array[x].match_play1_name = players_array[matches_array[x].match_play1_id].player_name;
@@ -283,21 +277,19 @@ function finishMatchInfo() {
 		}
 
 		document.getElementById("matchlist").innerHTML = matches_list_output;
-
-		//console.timeEnd("outputsort");
 }
 
 async function pageLoad() {
     await Promise.all([getPlayers(), getMatches()]);
-		await getBracketAssignStations();
+		await getBracket();
 		finishMatchInfo();
 }
 
 async function pL() {
 		await Promise.all([getPlayers(), getMatches()]);
-		await getBracketAssignStations();
+		await getBracket();
 		finishMatchInfo();
-		setInterval(pageLoad, 5000);
+		setInterval(pageLoad, 10000);
 }
     //Promise.all([getPlayers(), getMatches()]).then(() => {
       // players and matches is available
