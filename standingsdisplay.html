@@ -24,30 +24,14 @@
 	th, td {
 		border-bottom: 1px solid RGB(242, 79, 154);
 	}
-	.player {
-		font-size: 1.2em;
-		text-align: left;
-		width: 250px;
-		text-shadow: 0px 0px 2px #F24F9A;
-	}
-	.station {
-		font-size: 1.2em;
-		text-align: left;
-		text-shadow: 0px 0px 2px #F24F9A;
-	}
-	.smalltext {
-		font-size: 1.0em;
-		text-align: left;
-		padding: 2px;
-		border: none;
-	}
-	.regplayers {
+	.text-left {
 		font-size: 1.0em;
 		text-align: left;
 		padding-top: 1px;
-		padding-left: 20px;
-		padding-right: 20px;
-		border: none;
+		padding-left: 5px;
+		padding-right: 5px;
+	}
+	.text-left.display_name {
 		width: 250px;
 	}
 	th {
@@ -60,7 +44,7 @@
 <script>
 
 let matches_list_output = "";
-let matches_array = [0];
+let completed_matches_array = [0];
 let players_array = [];
 let station_array = [];
 let bstring = "hi";
@@ -98,7 +82,7 @@ function closeFullscreen() {
 }
 
 class MatchObj {
-    constructor(id, p1_id, p2_id, state, suggested_order, p1_name, p2_name, p1_seed, p2_seed, station) {
+    constructor(id, p1_id, p2_id, state, suggested_order, wid, lid, p1_name, p2_name, p1_seed, p2_seed, station) {
         this.match_id = id;
         this.match_play1_id = p1_id;
         this.match_play2_id = p2_id;
@@ -109,21 +93,29 @@ class MatchObj {
         this.match_state = state;
         this.match_station = station = 0;
 				this.match_sugg_order = suggested_order;
+        this.match_wid = wid;
+        this.match_lid = lid;
     }
 }
 
 class PlayerObj {
-    constructor(id, name, seed, misc) {
+    constructor(id, name, seed, misc, wins, losses) {
         this.player_id = id;
         this.player_name = name;
         this.player_seed = seed;
 				this.player_txtfield = misc;
+        this.player_wins = wins = 0;
+        this.player_losses = losses = 0;
     }
 }
+
+
+
 
 //Get List of all Player Names and Seeds
 function getPlayers() {
     return new Promise((resolve, reject) => {
+
       fetch('https://api.challonge.com/v1/tournaments/' + TOURNAMENT_ID + '/participants.json?' + API_KEY)
           .then((response) => {
               return response.json();
@@ -135,9 +127,9 @@ function getPlayers() {
                     playerJson[x].participant.id,
                     playerJson[x].participant.name,
                     playerJson[x].participant.seed,
-										playerJson[x].participant.misc
+										playerJson[x].participant.misc,
                   );
-
+                  //console.log(playerJson[x].participant.matches);
 									//Write player name and seet to players_array (index is the player id from Challonge)
                   players_array[playerJson[x].participant.id] = newPlayer;
                   //console.table(players_array);
@@ -151,26 +143,64 @@ function getPlayers() {
     });
 }
 
-//Get List of all "Open" matches
-//state=all or state=open
+//Get List of all "Complete" matches
+//state=complete
 function getMatches() {
   return new Promise((resolve, reject) => {
-    fetch('https://api.challonge.com/v1/tournaments/' + TOURNAMENT_ID + '/matches.json?state=open&' + API_KEY)
+    fetch('https://api.challonge.com/v1/tournaments/' + TOURNAMENT_ID + '/matches.json?state=complete&' + API_KEY)
         .then(response => response.json())
         .then((myJson) => {
-            //console.log(myJson);
-						matches_array = [];
+            console.log(myJson);
+						completed_matches_array = [];
             for (const x in myJson) {
-                //constructor(id, p1_id, p2_id, p1_name, p2_name, p1_seed, p2_seed, state, station, suggested_order) {
-                matches_array.push(new MatchObj(myJson[x].match.id, myJson[x].match.player1_id, myJson[x].match.player2_id, myJson[x].match.state, myJson[x].match.suggested_play_order));
-								//console.log(myJson[x].match.suggested_play_order);
+                completed_matches_array.push(new MatchObj(myJson[x].match.id, myJson[x].match.player1_id, myJson[x].match.player2_id, myJson[x].match.state,
+                                                myJson[x].match.suggested_play_order, myJson[x].match.winner_id, myJson[x].match.loser_id));
             }
 					  resolve();
         });
   });
 }
 
+https://challonge.com/b697b0wu
+function getStandingsTable() {
+  return new Promise((resolve, reject) => {
+    fetch('https://api.challonge.com/' + TOURNAMENT_ID + '/module?show_standings=1&tab=standings')
+        .then(response => response.text())
+        .then((htmltext) => {
+            //console.log(htmltext);
+            //htmltext = "<table></table>"
+            let tblhtml = new DOMParser().parseFromString(htmltext, 'text/html').querySelector('table').innerHTML;
+            //let tblhtml = new DOMParser().parseFromString(htmltext, 'text/html'); //.querySelector('table').innerHTML;
 
+            //console.log(tbltxt);
+            //re = "<a class=\"match-report\""
+            tblhtml = tblhtml.replace(/<div/g, '<span');
+            tblhtml = tblhtml.replace(/<\/div/g, '<\/span');
+            tblhtml = tblhtml.replace("Challonge User", "");
+            tblhtml = tblhtml.replace("Participant Name", "");
+            tblhtml = tblhtml.replace("Challonge User", "");
+
+            matches_list_output = "<table>" + tblhtml + "<\/table>";
+            //matches_list_output.split("data").join("");
+
+document.getElementById("matchlist").innerHTML = matches_list_output;
+						//completed_matches_array = [];
+            //for (const x in myJson) {
+            //    completed_matches_array.push(new MatchObj(myJson[x].match.id, myJson[x].match.player1_id, myJson[x].match.player2_id, myJson[x].match.state,
+            //                                    myJson[x].match.suggested_play_order, myJson[x].match.winner_id, myJson[x].match.loser_id));
+            //}
+					  resolve();
+        });
+  });
+}
+
+
+
+
+
+
+
+/*
 function getBracketAssignStations(){
 	return new Promise((resolve, reject) => {
 		//Get bracket layout from challonge
@@ -184,33 +214,29 @@ function getBracketAssignStations(){
 					let stat = "";
 					let match = "";
 					let mIndex = 0;
-					//Copy station extract into matches_array
+					//Copy station extract into completed_matches_array
 					while ((reResult = re.exec(s2s)) != null){
 						//console.log(reResult);
 						match = reMatch.exec(reResult[1])[0];
 						stat = reStation.exec(reResult[1])[0];
-						mIndex = matches_array.findIndex(x => x.match_id == match);
-						matches_array[mIndex].match_station = stat;
+						mIndex = completed_matches_array.findIndex(x => x.match_id == match);
+						completed_matches_array[mIndex].match_station = stat;
 					}
 					resolve();
 				});
-	});
-}
+	});}
+*/
 
 function finishMatchInfo() {
-
-
-		if(!matches_array.length) {
+		if(!completed_matches_array.length) {
 			console.log("Matches Not started");
 			matches_list_output = "<center><table>";
-
-			matches_list_output += "<tr><th colspan=6><a href=\"#\" onclick=\"openFullscreen()\"><img src=\"MADColoured.png\"></a></th></tr>";
+			matches_list_output += "<tr><th colspan=6><a href=\"#\" onclick=\"openFullscreen()\"><img src=\"MAD.png\"></a></th></tr>";
 			matches_list_output += "<tr><th colspan=6 >Tournament Starting Soon</th></tr>";
 			matches_list_output += "<tr><td colspan=6 align=center>Registered Players</td></tr>";
-
 			let j = 1;
 			for (const y in players_array) {
-				//if(matches_array[y].match_station == 0){
+				//if(completed_matches_array[y].match_station == 0){
 
 						if(j%3 == 0){
 							matches_list_output += "<td colspan=2 class=\"regplayers\">" + players_array[y].player_name + "</td></tr>";
@@ -229,34 +255,40 @@ function finishMatchInfo() {
 			matches_list_output += "</table>";
 		}
 		else {
-			//console.time("outputsort");
+			/*//console.time("outputsort");
 			//Populate Match Array with player names and seeds
-			for (const x in matches_array) {
-	    	matches_array[x].match_play1_name = players_array[matches_array[x].match_play1_id].player_name;
-		    matches_array[x].match_play1_seed = players_array[matches_array[x].match_play1_id].player_seed;
-		    matches_array[x].match_play2_name = players_array[matches_array[x].match_play2_id].player_name;
-		    matches_array[x].match_play2_seed = players_array[matches_array[x].match_play2_id].player_seed;
+			for (const x in completed_matches_array) {
+	    	completed_matches_array[x].match_play1_name = players_array[completed_matches_array[x].match_play1_id].player_name;
+		    completed_matches_array[x].match_play1_seed = players_array[completed_matches_array[x].match_play1_id].player_seed;
+		    completed_matches_array[x].match_play2_name = players_array[completed_matches_array[x].match_play2_id].player_name;
+		    completed_matches_array[x].match_play2_seed = players_array[completed_matches_array[x].match_play2_id].player_seed;
 			}
 
 			//Sort current matches array by station id
-			matches_array.sort((a, b) => (a.match_station > b.match_station) ? 1 : -1);
+			completed_matches_array.sort((a, b) => (a.match_station > b.match_station) ? 1 : -1);
+      */
+
+      for(const x in completed_matches_array){
+        //let mwid = completed_matches_array
+        //let mlid =
+        //players_array[].player_wins = players_array[].player_wins + 1;
+      }
 
 			//Write html for current matches (only those with a station id assigned)
-			matches_list_output = "<center><table>";
-			matches_list_output += "<tr><td colspan=2 class=\"smalltext\">&nbsp</td></tr>"
-			matches_list_output += "<tr><th colspan=4><a href=\"#\" onclick=\"openFullscreen()\"><img width=\"400px\" src=\"MADColoured1.png\"></a></th></tr>";
-			matches_list_output += "<tr><th colspan=4>Current Matches</th></tr>";
+      matches_list_output = "<center><table>";
+      matches_list_output += "<tr><th colspan=6><a href=\"#\" onclick=\"openFullscreen()\"><img src=\"MAD.png\"></a></th></tr>";
+      matches_list_output += "<tr><th colspan=6 >Current Standings</th></tr>";
 
-			for (const x in matches_array) {
-				if(matches_array[x].match_station != 0){
-					matches_list_output += "<tr><td class=\"player\">" + matches_array[x].match_play1_name + " [" + matches_array[x].match_play1_seed +
-					"] </td><td style=\"width: 20px; text-align: center\"> vs. </td><td class=\"player\">" + matches_array[x].match_play2_name + " [" +
-					matches_array[x].match_play2_seed + "]</td><td class=\"station\">Station: " + matches_array[x].match_station + "</td></tr>";
+			for (const x in completed_matches_array) {
+				if(completed_matches_array[x].match_station != 0){
+					matches_list_output += "<tr><td class=\"player\">" + completed_matches_array[x].match_play1_name + " [" + completed_matches_array[x].match_play1_seed +
+					"] </td><td style=\"width: 20px; text-align: center\"> vs. </td><td class=\"player\">" + completed_matches_array[x].match_play2_name + " [" +
+					completed_matches_array[x].match_play2_seed + "]</td><td class=\"station\">Station: " + completed_matches_array[x].match_station + "</td></tr>";
 				}
 			}
 
 			//Sort current matches by suggested play order
-			matches_array.sort((a, b) => (a.match_sugg_order > b.match_sugg_order) ? 1 : -1);
+			completed_matches_array.sort((a, b) => (a.match_sugg_order > b.match_sugg_order) ? 1 : -1);
 
 			//Write html for upcoming matches (open matches with no station id assigned)
 			matches_list_output += "<tr>";
@@ -264,17 +296,17 @@ function finishMatchInfo() {
 			matches_list_output += "<tr><td colspan=4 style=\"text-align: center; padding: 6px; font-weight: bold\">Upcoming Matches</td></tr>";
 
 			let j = 0;
-			for (const y in matches_array) {
-				if(matches_array[y].match_station == 0){
+			for (const y in completed_matches_array) {
+				if(completed_matches_array[y].match_station == 0){
 						if(j%2 == 0 && j < 24){
-							matches_list_output += "<tr><td colspan=2 class=\"smalltext\" style=\"padding-left: 5px\">" + matches_array[y].match_play1_name + " [" + matches_array[y].match_play1_seed +
-							"] vs. " + matches_array[y].match_play2_name + " [" +
-							matches_array[y].match_play2_seed + "]</td>";
+							matches_list_output += "<tr><td colspan=2 class=\"smalltext\" style=\"padding-left: 5px\">" + completed_matches_array[y].match_play1_name + " [" + completed_matches_array[y].match_play1_seed +
+							"] vs. " + completed_matches_array[y].match_play2_name + " [" +
+							completed_matches_array[y].match_play2_seed + "]</td>";
 						}
 						if(j%2 == 1 && j < 24){
-							matches_list_output += "<td colspan=2 class=\"smalltext\" style=\"padding-left: 50px\">" + matches_array[y].match_play1_name + " [" + matches_array[y].match_play1_seed +
-							"] vs. " + matches_array[y].match_play2_name + " [" +
-							matches_array[y].match_play2_seed + "]</td></tr>";
+							matches_list_output += "<td colspan=2 class=\"smalltext\" style=\"padding-left: 50px\">" + completed_matches_array[y].match_play1_name + " [" + completed_matches_array[y].match_play1_seed +
+							"] vs. " + completed_matches_array[y].match_play2_name + " [" +
+							completed_matches_array[y].match_play2_seed + "]</td></tr>";
 						}
 						j++;
 				}
@@ -290,15 +322,17 @@ function finishMatchInfo() {
 }
 
 async function pageLoad() {
-    await Promise.all([getPlayers(), getMatches()]);
-		await getBracketAssignStations();
-		finishMatchInfo();
+//    await Promise.all([getPlayers(), getMatches()]);
+    getStandingsTable();
+//		await getBracketAssignStations();
+	//	finishMatchInfo();
 }
 
 async function pL() {
-		await Promise.all([getPlayers(), getMatches()]);
-		await getBracketAssignStations();
-		finishMatchInfo();
+	//	await Promise.all([getPlayers(), getMatches()]);
+//		await getBracketAssignStations();
+    getStandingsTable();
+	//	finishMatchInfo();
 		setInterval(pageLoad, 5000);
 }
     //Promise.all([getPlayers(), getMatches()]).then(() => {
