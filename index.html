@@ -25,18 +25,26 @@
 		border-bottom: 1px solid RGB(242, 79, 154);
 	}
 	.player {
-		font-size: 1.2em;
+		font-size: 2.5em;
 		text-align: left;
-		width: 250px;
+		width: 550px;
+		height: 60px;
 		text-shadow: 0px 0px 2px #F24F9A;
+		padding-left: 20px;
+		padding-right: 20px;
 	}
 	.station {
-		font-size: 1.2em;
+		font-size: 2.2em;
+		text-align: left;
+		text-shadow: 0px 0px 2px #F24F9A;
+	}
+	.round {
+		font-size: 2.2em;
 		text-align: left;
 		text-shadow: 0px 0px 2px #F24F9A;
 	}
 	.smalltext {
-		font-size: 1.0em;
+		font-size: 1.8em;
 		text-align: left;
 		padding: 2px;
 		border: none;
@@ -51,7 +59,7 @@
 		width: 250px;
 	}
 	th {
-		font-size: 1.5em;
+		font-size: 2.0em;
 	}
 </style>
 <meta charset="UTF-8">
@@ -83,7 +91,6 @@ function openFullscreen() {
     elem.msRequestFullscreen();
   }
 }
-
 /* Close fullscreen */
 function closeFullscreen() {
   if (document.exitFullscreen) {
@@ -98,26 +105,37 @@ function closeFullscreen() {
 }
 
 class MatchObj {
-    constructor(id, p1_id, p2_id, state, suggested_order, p1_name, p2_name, p1_seed, p2_seed, station) {
-        this.match_id = id;
-        this.match_play1_id = p1_id;
-        this.match_play2_id = p2_id;
-        this.match_play1_name = p1_name;
-        this.match_play2_name = p2_name;
-        this.match_play1_seed = p1_seed;
-        this.match_play2_seed = p2_seed;
-        this.match_state = state;
-        this.match_station = station = 0;
-				this.match_sugg_order = suggested_order;
+    constructor(id, p1_id, p2_id, state, suggested_order, rnd, st_time) {
+        this.id = id;
+        this.play1_id = p1_id;
+        this.play2_id = p2_id;
+        this.play1_name = "";
+        this.play2_name = "";
+        this.play1_seed = "";
+        this.play2_seed = "";
+        this.state = state;
+        this.station = "Z";
+				this.sugg_order = suggested_order;
+				//this.round = rnd;
+				this.start_time = st_time;
+
+				if(rnd > 0){
+					this.round = "Winners: " + rnd;
+					this.short_round = "WR" + rnd; //console.log("Winners");//match_round = "WR " + matches_array[x].round;
+				}
+				else if(rnd < 0){
+					this.round = "Losers: " + rnd;
+					this.short_round = "LR" + rnd; //console.log("Losers");//match_round = "LR " + matches_array[x].round;
+				}
     }
 }
 
 class PlayerObj {
     constructor(id, name, seed, misc) {
-        this.player_id = id;
-        this.player_name = name;
-        this.player_seed = seed;
-				this.player_txtfield = misc;
+        this.id = id;
+        this.name = name;
+        this.seed = seed;
+				this.txtfield = misc;
     }
 }
 
@@ -158,18 +176,23 @@ function getMatches() {
     fetch('https://api.challonge.com/v1/tournaments/' + TOURNAMENT_ID + '/matches.json?state=open&' + API_KEY)
         .then(response => response.json())
         .then((myJson) => {
-            //console.log(myJson);
+            console.log(myJson);
 						matches_array = [];
             for (const x in myJson) {
                 //constructor(id, p1_id, p2_id, p1_name, p2_name, p1_seed, p2_seed, state, station, suggested_order) {
-                matches_array.push(new MatchObj(myJson[x].match.id, myJson[x].match.player1_id, myJson[x].match.player2_id, myJson[x].match.state, myJson[x].match.suggested_play_order));
-								//console.log(myJson[x].match.suggested_play_order);
+                matches_array.push(new MatchObj(
+									myJson[x].match.id,
+									myJson[x].match.player1_id,
+									myJson[x].match.player2_id,
+									myJson[x].match.state,
+									myJson[x].match.suggested_play_order,
+									myJson[x].match.round,
+									myJson[x].match.started_at));
             }
 					  resolve();
         });
   });
 }
-
 
 function getBracketAssignStations(){
 	return new Promise((resolve, reject) => {
@@ -189,8 +212,8 @@ function getBracketAssignStations(){
 						//console.log(reResult);
 						match = reMatch.exec(reResult[1])[0];
 						stat = reStation.exec(reResult[1])[0];
-						mIndex = matches_array.findIndex(x => x.match_id == match);
-						matches_array[mIndex].match_station = stat;
+						mIndex = matches_array.findIndex(x => x.id == match);
+						matches_array[mIndex].station = stat;
 					}
 					resolve();
 				});
@@ -198,29 +221,26 @@ function getBracketAssignStations(){
 }
 
 function finishMatchInfo() {
-
-
 		if(!matches_array.length) {
 			console.log("Matches Not started");
 			matches_list_output = "<center><table>";
 
-			matches_list_output += "<tr><th colspan=6><a href=\"#\" onclick=\"openFullscreen()\"><img width=\"400px\" src=\"MADColoured1.png\"></a></th></tr>";
+			matches_list_output += "<tr><th colspan=><a href=\"#\" onclick=\"openFullscreen()\"><img width=\"500px\" src=\"MADColoured1.png\"></a></th></tr>";
 			matches_list_output += "<tr><th colspan=6 >Tournament Starting Soon</th></tr>";
 			matches_list_output += "<tr><td colspan=6 align=center>Registered Players</td></tr>";
 
 			let j = 1;
 			for (const y in players_array) {
-				//if(matches_array[y].match_station == 0){
-
+				//if(matches_array[y].station == 0){
 						if(j%3 == 0){
-							matches_list_output += "<td colspan=2 class=\"regplayers\">" + players_array[y].player_name + "</td></tr>";
+							matches_list_output += "<td colspan=2 class=\"regplayers\">" + players_array[y].name + "</td></tr>";
 							j = j - 3;
 						}
 						else if(j%2 == 0){
-							matches_list_output += "<td colspan=2 class=\"regplayers\">" + players_array[y].player_name + "</td>";
+							matches_list_output += "<td colspan=2 class=\"regplayers\">" + players_array[y].name + "</td>";
 						}
 						else if(j%2 == 1){
-							matches_list_output += "<tr><td colspan=2 class=\"regplayers\">" + players_array[y].player_name + "</td>";
+							matches_list_output += "<tr><td colspan=2 class=\"regplayers\">" + players_array[y].name + "</td>";
 						}
 						j++;
 				//}
@@ -228,59 +248,128 @@ function finishMatchInfo() {
 			matches_list_output += "<tr><td colspan=6 style=\"text-align: center; padding: 6px\"></td></tr>";
 			matches_list_output += "</table>";
 		}
+
 		else {
 			//console.time("outputsort");
 			//Populate Match Array with player names and seeds
+			let current_matches = [];
+			let upcoming_matches = [];
+
 			for (const x in matches_array) {
-	    	matches_array[x].match_play1_name = players_array[matches_array[x].match_play1_id].player_name;
-		    matches_array[x].match_play1_seed = players_array[matches_array[x].match_play1_id].player_seed;
-		    matches_array[x].match_play2_name = players_array[matches_array[x].match_play2_id].player_name;
-		    matches_array[x].match_play2_seed = players_array[matches_array[x].match_play2_id].player_seed;
+				matches_array[x].play1_name = players_array[matches_array[x].play1_id].name;
+				matches_array[x].play1_seed = players_array[matches_array[x].play1_id].seed;
+				matches_array[x].play2_name = players_array[matches_array[x].play2_id].name;
+				matches_array[x].play2_seed = players_array[matches_array[x].play2_id].seed;
+
+				if(matches_array[x].station != "Z"){
+					current_matches.push(matches_array[x]);
+					//console.table(current_matches);
+				}
+				else{
+					upcoming_matches.push(matches_array[x]);
+				}
+
+
+
 			}
 
+			console.time("sort");
+			//console.table(current_matches);
+			current_matches.sort((a, b) => (a.start_time < b.start_time) ? 1 : -1);
+			current_matches[0].play1_name = "**** " + current_matches[0].play1_name;
+			current_matches[1].play1_name = "*** " + current_matches[1].play1_name;
+			current_matches[2].play1_name = "** " + current_matches[2].play1_name;
+
+
+			current_matches[0].play2_name = current_matches[0].play2_name + " ****";
+			current_matches[1].play2_name = current_matches[1].play2_name + " ***";
+			current_matches[2].play2_name = current_matches[2].play2_name + " **";
+			//console.table(current_matches);
+
+			current_matches.sort((a, b) => (a.station > b.station) ? 1 : -1);
+			//console.table(current_matches);
+			console.timeEnd("sort");
+
+
 			//Sort current matches array by station id
-			matches_array.sort((a, b) => (a.match_station > b.match_station) ? 1 : -1);
+			matches_array.sort((a, b) => (a.station > b.station) ? 1 : -1);
 
 			//Write html for current matches (only those with a station id assigned)
 			matches_list_output = "<center><table>";
 			matches_list_output += "<tr><td colspan=2 class=\"smalltext\">&nbsp</td></tr>"
-			matches_list_output += "<tr><th colspan=4><a href=\"#\" onclick=\"openFullscreen()\"><img width=\"400px\" src=\"MADColoured1.png\"></a></th></tr>";
-			matches_list_output += "<tr><th colspan=4>Current Matches</th></tr>";
+			matches_list_output += "<tr><th colspan=5><a href=\"#\" onclick=\"openFullscreen()\"><img width=\"500px\" src=\"MADColoured1.png\"></a></th></tr>";
+			matches_list_output += "<tr><th colspan=5>Current Matches</th></tr>";
 
-			for (const x in matches_array) {
-				if(matches_array[x].match_station != 0){
-					matches_list_output += "<tr><td class=\"player\">" + matches_array[x].match_play1_name + " [" + matches_array[x].match_play1_seed +
-					"] </td><td style=\"width: 20px; text-align: center\"> vs. </td><td class=\"player\">" + matches_array[x].match_play2_name + " [" +
-					matches_array[x].match_play2_seed + "]</td><td class=\"station\">Station: " + matches_array[x].match_station + "</td></tr>";
-				}
+			for(const x in current_matches){
+				console.log(current_matches[x].start_time);
+				matches_list_output += "<tr><td class=\"round\">" + current_matches[x].round + "</td>" +
+															 "<td class=\"player\" style=\"text-align: right\">" + current_matches[x].play1_name + " [" + current_matches[x].play1_seed + "]</td>" +
+															 "<td style=\"width: 20px; text-align: center\"> vs. </td>" +
+															 "<td class=\"player\">[" + current_matches[x].play2_seed + "] " + current_matches[x].play2_name + "</td>" +
+															 "<td class=\"station\">Station: " + current_matches[x].station + "</td></tr>";
 			}
 
+			console.table(current_matches);
+
+/*			for (const x in matches_array) {
+				let match_round = 0;
+				if(matches_array[x].station != "Z"){
+					matches_list_output += "<tr><td class=\"round\">" + matches_array[x].round + "</td>" +
+																 "<td class=\"player\" style=\"text-align: right\">" + matches_array[x].play1_name + " [" + matches_array[x].play1_seed + "]</td>" +
+																 "<td style=\"width: 20px; text-align: center\"> vs. </td>" +
+																 "<td class=\"player\">[" + matches_array[x].play2_seed + "] " + matches_array[x].play2_name + "</td>" +
+																 "<td class=\"station\">Station: " + matches_array[x].station + "</td></tr>";
+				}
+			}
+*/
 			//Sort current matches by suggested play order
-			matches_array.sort((a, b) => (a.match_sugg_order > b.match_sugg_order) ? 1 : -1);
+			matches_array.sort((a, b) => (a.sugg_order > b.sugg_order) ? 1 : -1);
+
+			//console.table(upcoming_matches);
+			upcoming_matches.sort((a, b) => (a.sugg_order > b.sugg_order) ? 1 : -1);
+			//console.table(upcoming_matches);
+
 
 			//Write html for upcoming matches (open matches with no station id assigned)
 			matches_list_output += "<tr>";
-			matches_list_output += "<tr><td colspan=4 style=\"text-align: center; padding: 10px; font-weight: bold\"></td></tr>";
-			matches_list_output += "<tr><td colspan=4 style=\"text-align: center; padding: 6px; font-weight: bold\">Upcoming Matches</td></tr>";
+			matches_list_output += "<tr><td colspan=5 style=\"text-align: center; padding: 10px; font-weight: bold\"></td></tr>";
+			matches_list_output += "<tr><th colspan=5>On Deck</th></tr>";
 
 			let j = 0;
-			for (const y in matches_array) {
-				if(matches_array[y].match_station == 0){
-						if(j%2 == 0 && j < 24){
-							matches_list_output += "<tr><td colspan=2 class=\"smalltext\" style=\"padding-left: 5px\">" + matches_array[y].match_play1_name + " [" + matches_array[y].match_play1_seed +
-							"] vs. " + matches_array[y].match_play2_name + " [" +
-							matches_array[y].match_play2_seed + "]</td>";
+			for (const y in upcoming_matches) {
+						let z = j+1;
+						if(j%2 == 0 && j < 6){
+							matches_list_output += "<tr><td colspan=2 class=\"smalltext\" style=\"padding-left: 100px\">" + z + " - " +
+																		 upcoming_matches[y].short_round + " - " + upcoming_matches[y].play1_name + " [" + upcoming_matches[y].play1_seed + "]" +
+																		 " vs. " + upcoming_matches[y].play2_name + " [" + upcoming_matches[y].play2_seed + "]</td><td class=\"smalltext\"></td>";
 						}
-						if(j%2 == 1 && j < 24){
-							matches_list_output += "<td colspan=2 class=\"smalltext\" style=\"padding-left: 50px\">" + matches_array[y].match_play1_name + " [" + matches_array[y].match_play1_seed +
-							"] vs. " + matches_array[y].match_play2_name + " [" +
-							matches_array[y].match_play2_seed + "]</td></tr>";
+						if(j%2 == 1 && j < 6){
+							matches_list_output += "<td colspan=2 class=\"smalltext\" style=\"padding-left: 100px\">" + z + " - " +
+																		 upcoming_matches[y].short_round + " - " + upcoming_matches[y].play1_name + " [" + upcoming_matches[y].play1_seed + "]" +
+																		 " vs. " + upcoming_matches[y].play2_name + " [" + upcoming_matches[y].play2_seed + "]</td></tr>";
+						}
+						j++;
+			}
+
+	/*		//let j = 0;
+			for (const y in matches_array) {
+				if(matches_array[y].station == "Z"){
+						let z = j+1;
+						if(j%2 == 0 && j < 6){
+							matches_list_output += "<tr><td colspan=2 class=\"smalltext\" style=\"padding-left: 100px\">" + z + " - " +
+																		 matches_array[y].short_round + " - " + matches_array[y].play1_name + " [" + matches_array[y].play1_seed + "]" +
+																		 " vs. " + matches_array[y].play2_name + " [" + matches_array[y].play2_seed + "]</td><td class=\"smalltext\"></td>";
+						}
+						if(j%2 == 1 && j < 6){
+							matches_list_output += "<td colspan=2 class=\"smalltext\" style=\"padding-left: 100px\">" + z + " - " +
+																		 matches_array[y].short_round + " - " + matches_array[y].play1_name + " [" + matches_array[y].play1_seed + "]" +
+																		 " vs. " + matches_array[y].play2_name + " [" + matches_array[y].play2_seed + "]</td></tr>";
 						}
 						j++;
 				}
 			}
-
-			matches_list_output += "<tr><td colspan=4 style=\"text-align: center; padding: 6px\"></td></tr>";
+*/
+			matches_list_output += "<tr><td colspan=5 style=\"text-align: center; padding: 6px\"></td></tr>";
 			matches_list_output += "</table>";
 		}
 
