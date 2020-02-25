@@ -25,41 +25,92 @@
 		border-bottom: 1px solid RGB(242, 79, 154);
 	}
 	.player {
-		font-size: 2.5em;
+		font-size: 1.8em;
 		text-align: left;
-		width: 550px;
-		height: 60px;
+		width: 450px;
+		height: 25px;
 		text-shadow: 0px 0px 2px #F24F9A;
 		padding-left: 20px;
 		padding-right: 20px;
 	}
+	.new_match {
+		animation-name: new_match_animation;
+		animation-duration: 2.5s;
+		animation-iteration-count: infinite;
+	}
+	.stale_match {
+		animation-name: stale_match_animation;
+		animation-duration: 2.5s;
+		animation-iteration-count: infinite;
+	}
 	.station {
-		font-size: 2.2em;
-		text-align: left;
+		font-size: 1.8em;
+		text-align: right;
 		text-shadow: 0px 0px 2px #F24F9A;
+		width: 250px;
 	}
 	.round {
-		font-size: 2.2em;
+		font-size: 1.8em;
 		text-align: left;
 		text-shadow: 0px 0px 2px #F24F9A;
+		width: 250px;
 	}
 	.smalltext {
-		font-size: 1.8em;
+		font-size: 1.5em;
 		text-align: left;
 		padding: 2px;
 		border: none;
 	}
 	.regplayers {
-		font-size: 1.0em;
+		font-size: 1.5em;
 		text-align: left;
-		padding-top: 1px;
-		padding-left: 20px;
-		padding-right: 20px;
+		padding: 2px;
 		border: none;
-		width: 250px;
+		width: 300px;
+	}
+	.wofwinner {
+		font-size: 1.8em;
+		text-align: center;
+		border: none;
+		padding: 1px;
+	}
+	.woftitle {
+			font-size: 1em;
+			text-align: center;
+			border: none;
+			padding: 1px;
+			background: rgba(242, 79, 154, 0.15)
+		}
+	.wofsecond {
+		font-size: 1.2em;
+		text-align: center;
+		padding: 1px;
 	}
 	th {
 		font-size: 2.0em;
+	}
+
+	@keyframes new_match_animation{
+		0% {
+			background: rgba(242, 79, 154, 0.05);
+		}
+		50% {
+			background: rgba(242, 79, 154, 0.2);
+		}
+		100% {
+			background: rgba(242, 79, 154, 0.05);
+		}
+	}
+	@keyframes stale_match_animation{
+		0% {
+			background: rgba(200, 00, 00, 0.1);
+		}
+		50% {
+			background: rgba(200, 00, 00, 0.3);
+		}
+		100% {
+			background: rgba(200, 00, 00, 0.1);
+		}
 	}
 </style>
 <meta charset="UTF-8">
@@ -68,13 +119,32 @@
 <script>
 
 let matches_list_output = "";
-let matches_array = [0];
+let matches_array = [];
+let current_matches = [];
+let upcoming_matches = [];
 let players_array = [];
 let station_array = [];
-let bstring = "hi";
-let x = 0;
+
+let GFMatchReset = 0;
+let GFMatch = 0;
+let LFMatch = 0;
+let WFMatch = 0;
+let LSFMatch = 0;
+let LQFMatch0 = 0;
+let LQFMatch1 = 0;
+let WSFMatch0 = 0;
+let WSFMatch1 = 0;
+let LT8Match0 = 0;
+let LT8Match1 = 0;
+let regscreenVar = 0;
+
+let current_time = Date.now();
 const API_KEY = "api_key=smrZWnrWB7KTLwRc7ZvllT0wjaw3nA3CIkCUwZJt";
-const TOURNAMENT_ID = "b697b0wu";
+const TOURNAMENT_ID = "scyctest01";
+const NEW_MATCH_TIME = 20;  //Time in seconds after match is assigned a station that it is considered "New" for display
+const STALE_MATCH_TIME = 60;   //Time in seconds after match is assigned a station that it is considered "Stale" for display
+let first_runtime = 1;
+let persistent_match_data = [];
 
 /* Get the documentElement (<html>) to display the page in fullscreen */
 var elem = document.documentElement;
@@ -104,6 +174,70 @@ function closeFullscreen() {
   }
 }
 
+class PersistentMatchObj {
+    constructor(id, sugg_ord, rnd) {
+        this.match_id = id;
+        this.start_time = 0;
+				this.sugg_order = sugg_ord;
+
+				if(this.sugg_order >= LT8Match1){
+					switch(this.sugg_order){
+						case GFMatchReset:
+							this.round = "Grand Finals Reset";
+							this.short_round = "GFR";
+							break;
+						case GFMatch:
+							this.round = "Grand Finals";
+							this.short_round = "GF";
+							break;
+						case LFMatch:
+							this.round = "Losers Finals";
+							this.short_round = "LF";
+							break;
+						case WFMatch:
+							this.round = "Winners Finals";
+							this.short_round = "WF";
+							break;
+						case LSFMatch:
+							this.round = "Losers Semis";
+							this.short_round = "LSF";
+							break;
+						case LQFMatch0:
+							this.round = "Losers Quarters";
+							this.short_round = "LQ";
+							break;
+						case LQFMatch1:
+							this.round = "Losers Quarters";
+							this.short_round = "LQ";
+							break;
+						case WSFMatch0:
+							this.round = "Winners Semis";
+							this.short_round = "WSF";
+							break;
+						case WSFMatch1:
+							this.round = "Winners Semis";
+							this.short_round = "WSF";
+							break;
+						case LT8Match0:
+							this.round = "Losers Top 8";
+							this.short_round = "LT8";
+							break;
+						case LT8Match1:
+							this.round = "Losers Top 8";
+							this.short_round = "LT8";
+							break;
+					}
+				}	else if(rnd > 0){
+					this.round = "Winners Round " + rnd;
+					this.short_round = "WR" + rnd; //console.log("Winners");//match_round = "WR " + matches_array[x].round;
+				}	else if(rnd < 0){
+					rnd = rnd * -1;
+					this.round = "Losers Round " + rnd;
+					this.short_round = "LR" + rnd; //console.log("Losers");//match_round = "LR " + matches_array[x].round;
+				}
+    }
+}
+
 class MatchObj {
     constructor(id, p1_id, p2_id, state, suggested_order, rnd, st_time) {
         this.id = id;
@@ -118,15 +252,8 @@ class MatchObj {
 				this.sugg_order = suggested_order;
 				//this.round = rnd;
 				this.start_time = st_time;
+				this.time_elapsed = 0;
 
-				if(rnd > 0){
-					this.round = "Winners: " + rnd;
-					this.short_round = "WR" + rnd; //console.log("Winners");//match_round = "WR " + matches_array[x].round;
-				}
-				else if(rnd < 0){
-					this.round = "Losers: " + rnd;
-					this.short_round = "LR" + rnd; //console.log("Losers");//match_round = "LR " + matches_array[x].round;
-				}
     }
 }
 
@@ -148,18 +275,16 @@ function getPlayers() {
           })
           .then((playerJson) => {
               //console.log(playerJson);
+							players_array = [];
               for (const x in playerJson) {
-                  const newPlayer = new PlayerObj(
+  							players_array.push(new PlayerObj(
                     playerJson[x].participant.id,
                     playerJson[x].participant.name,
                     playerJson[x].participant.seed,
 										playerJson[x].participant.misc
-                  );
-
-									//Write player name and seet to players_array (index is the player id from Challonge)
-                  players_array[playerJson[x].participant.id] = newPlayer;
-                  //console.table(players_array);
+                ));
               }
+
 
               resolve();
               //  })
@@ -171,12 +296,14 @@ function getPlayers() {
 
 //Get List of all "Open" matches
 //state=all or state=open
-function getMatches() {
+function getOpenMatches() {
+	let found = 0;
   return new Promise((resolve, reject) => {
-    fetch('https://api.challonge.com/v1/tournaments/' + TOURNAMENT_ID + '/matches.json?state=open&' + API_KEY)
+		//matches_array = [0];
+		fetch('https://api.challonge.com/v1/tournaments/' + TOURNAMENT_ID + '/matches.json?state=open&' + API_KEY)
         .then(response => response.json())
         .then((myJson) => {
-            console.log(myJson);
+            //console.log(myJson);
 						matches_array = [];
             for (const x in myJson) {
                 //constructor(id, p1_id, p2_id, p1_name, p2_name, p1_seed, p2_seed, state, station, suggested_order) {
@@ -188,7 +315,47 @@ function getMatches() {
 									myJson[x].match.suggested_play_order,
 									myJson[x].match.round,
 									myJson[x].match.started_at));
-            }
+						}
+						//console.table(persistent_match_data);
+					  resolve();
+        });
+  });
+}
+
+//Get List of all "Open" matches
+//state=all or state=open
+function getNumMatches() {
+	let found = 0;
+  return new Promise((resolve, reject) => {
+		//matches_array = [0];
+		fetch('https://api.challonge.com/v1/tournaments/' + TOURNAMENT_ID + '/matches.json?state=all&' + API_KEY)
+        .then(response => response.json())
+        .then((myJson) => {
+            //console.log(myJson);
+						//matches_array = [];
+						//console.log(Object.keys(myJson).length);
+						GFMatchReset = Object.keys(myJson).length;
+						GFMatch = GFMatchReset - 1;
+						LFMatch = GFMatchReset - 2;
+						WFMatch = GFMatchReset - 3;
+						LSFMatch = GFMatchReset - 4;
+						LQFMatch0 = GFMatchReset - 5;
+						LQFMatch1 = GFMatchReset - 6;
+						WSFMatch0 = GFMatchReset - 7;
+						WSFMatch1 = GFMatchReset - 8;
+						LT8Match0 = GFMatchReset - 9;
+						LT8Match1 = GFMatchReset - 10;
+						for (const x in myJson) {
+            	persistent_match_data.push(new PersistentMatchObj(
+									myJson[x].match.id,
+									myJson[x].match.suggested_play_order,
+									myJson[x].match.round));
+						}
+						//persistent_match_data.push(new PersistentMatchObj(matches_array[x].id, time_to_use));
+
+
+
+						//console.table(persistent_match_data);
 					  resolve();
         });
   });
@@ -220,21 +387,34 @@ function getBracketAssignStations(){
 	});
 }
 
-function finishMatchInfo() {
-		if(!matches_array.length) {
-			console.log("Matches Not started");
-			matches_list_output = "<center><table>";
+function generatePreStartPage(){
+	//console.log("Matches Not started");
+	matches_list_output = "<center><table>";
 
-			matches_list_output += "<tr><th colspan=><a href=\"#\" onclick=\"openFullscreen()\"><img width=\"500px\" src=\"MADColoured1.png\"></a></th></tr>";
-			matches_list_output += "<tr><th colspan=6 >Tournament Starting Soon</th></tr>";
-			matches_list_output += "<tr><td colspan=6 align=center>Registered Players</td></tr>";
+
+
+	if(regscreenVar < 2){
+
+			matches_list_output += "<tr><th colspan=10><a href=\"#\" onclick=\"openFullscreen()\"><img width=\"500px\" src=\"MADColoured1.png\"></a></th></tr>";
+			matches_list_output += "<tr><th colspan=10>Tournament Starting Soon</th></tr>";
+			matches_list_output += "<tr><td colspan=10 align=center>Registered Players</td></tr>";
+
+			players_array.sort((a, b) => (a.name > b.name) ? 1 : -1);
 
 			let j = 1;
 			for (const y in players_array) {
 				//if(matches_array[y].station == 0){
-						if(j%3 == 0){
+						if(j%5 == 0){
 							matches_list_output += "<td colspan=2 class=\"regplayers\">" + players_array[y].name + "</td></tr>";
-							j = j - 3;
+							j = j - 5;
+						}
+						else if(j%4 == 0){
+							matches_list_output += "<td colspan=2 class=\"regplayers\">" + players_array[y].name + "</td>";
+							//j = j - 4;
+						}
+						else if(j%3 == 0){
+							matches_list_output += "<td colspan=2 class=\"regplayers\">" + players_array[y].name + "</td>";
+							//j = j - 3;
 						}
 						else if(j%2 == 0){
 							matches_list_output += "<td colspan=2 class=\"regplayers\">" + players_array[y].name + "</td>";
@@ -245,152 +425,194 @@ function finishMatchInfo() {
 						j++;
 				//}
 			}
-			matches_list_output += "<tr><td colspan=6 style=\"text-align: center; padding: 6px\"></td></tr>";
-			matches_list_output += "</table>";
+
+			matches_list_output += "<tr><td colspan=10 style=\"text-align: center; padding: 6px\"></td></tr>";
+
+			regscreenVar++;
+	}
+	else {
+		matches_list_output += "<tr><th colspan=1><a href=\"#\" onclick=\"openFullscreen()\"><img width=\"500px\" src=\"MADColoured1.png\"></a></th></tr>";
+		matches_list_output += "<tr><th colspan=1>Wall of Fame</th></tr>";
+		matches_list_output += "<tr><td colspan=1 class=\"woftitle\">MAD 000 - 2/7/2020</td>";
+		matches_list_output += "<tr><th colspan=1 class=\"wofwinner\">#1: Vessel O</th></tr>";
+		matches_list_output += "<tr><th colspan=1 class=\"wofsecond\">#2: Drystan</th></tr>";
+		matches_list_output += "<tr><td colspan=1 class=\"woftitle\">MAD 001 - 2/21/2020</td>";
+		matches_list_output += "<tr><th colspan=1 class=\"wofwinner\">#1: Doman</th></tr>";
+		matches_list_output += "<tr><th colspan=1 class=\"wofsecond\">#2: Drystan</th></tr>";
+		regscreenVar++;
+		if(regscreenVar > 3){regscreenVar = 0;}
+	}
+
+	matches_list_output += "</table>";
+}
+
+function finishAndSplitMatchArrays(){
+	current_matches = [];
+	upcoming_matches = [];
+	let z = 0;
+	let tempIndex = 0;
+	let time_to_use = 0;
+
+	for (const x in matches_array) {
+		//Populate Match Array with player names and seeds
+		//if statements below not necessary if only "open" matches are read
+		if(matches_array[x].play1_id){
+			tempIndex = players_array.findIndex(c => c.id == matches_array[x].play1_id);
+			//console.log(tempid + " " + matches_array[x].play1_id + " " + players_array[tempid].id);
+			matches_array[x].play1_name = players_array[tempIndex].name;
+			matches_array[x].play1_seed = players_array[tempIndex].seed;
+		}
+		if(matches_array[x].play2_id){
+			tempIndex = players_array.findIndex(c => c.id == matches_array[x].play2_id);
+			//console.log(tempid + " " + matches_array[x].play2_id + " " + players_array[tempid].id);
+			matches_array[x].play2_name = players_array[tempIndex].name;
+			matches_array[x].play2_seed = players_array[tempIndex].seed;
 		}
 
-		else {
-			//console.time("outputsort");
-			//Populate Match Array with player names and seeds
-			let current_matches = [];
-			let upcoming_matches = [];
+		//Split matches_array into current_matches and upcoming_matches arrays
+		if(matches_array[x].station != "Z"){
+			//if a valid station is assigned
 
-			for (const x in matches_array) {
-				matches_array[x].play1_name = players_array[matches_array[x].play1_id].name;
-				matches_array[x].play1_seed = players_array[matches_array[x].play1_id].seed;
-				matches_array[x].play2_name = players_array[matches_array[x].play2_id].name;
-				matches_array[x].play2_seed = players_array[matches_array[x].play2_id].seed;
+			//add start_time to persistent match data array
+			//find match_id in persistent match data array
+			z = persistent_match_data.findIndex(b => b.match_id == matches_array[x].id);
 
-				if(matches_array[x].station != "Z"){
-					current_matches.push(matches_array[x]);
-					//console.table(current_matches);
+			//true if match with match_id has no start time
+			if(!persistent_match_data[z].start_time){
+				//If first time the page is loaded, set "match start times" to
+				//an amount so that the matches only flash for a few seconds
+				if(first_runtime){
+					time_to_use = current_time - NEW_MATCH_TIME + 5;
 				}
 				else{
-					upcoming_matches.push(matches_array[x]);
+					time_to_use = current_time;
 				}
 
+				persistent_match_data[z].start_time = time_to_use;
 
+				console.log("Adding" + matches_array[x].id + " " + persistent_match_data[z].match_id +
+				 						" " + current_time + " " + time_to_use);
 
 			}
 
-			console.time("sort");
-			//console.table(current_matches);
-			current_matches.sort((a, b) => (a.start_time < b.start_time) ? 1 : -1);
-			current_matches[0].play1_name = "**** " + current_matches[0].play1_name;
-			current_matches[1].play1_name = "*** " + current_matches[1].play1_name;
-			current_matches[2].play1_name = "** " + current_matches[2].play1_name;
+			matches_array[x].time_elapsed = current_time - persistent_match_data[z].start_time;
+			current_matches.push(matches_array[x]);
+
+		}
+		else{
+			upcoming_matches.push(matches_array[x]);
+		}
+	}
+}
 
 
-			current_matches[0].play2_name = current_matches[0].play2_name + " ****";
-			current_matches[1].play2_name = current_matches[1].play2_name + " ***";
-			current_matches[2].play2_name = current_matches[2].play2_name + " **";
-			//console.table(current_matches);
+function generatePostStartPage(){
+	finishAndSplitMatchArrays();
 
-			current_matches.sort((a, b) => (a.station > b.station) ? 1 : -1);
-			//console.table(current_matches);
-			console.timeEnd("sort");
+	current_matches.sort((a, b) => (a.station > b.station) ? 1 : -1);
+	//console.table(current_matches);
+	//console.timeEnd("sort");
 
 
-			//Sort current matches array by station id
-			matches_array.sort((a, b) => (a.station > b.station) ? 1 : -1);
+	//Sort current matches array by station id
+	//matches_array.sort((a, b) => (a.station > b.station) ? 1 : -1);
 
-			//Write html for current matches (only those with a station id assigned)
-			matches_list_output = "<center><table>";
-			matches_list_output += "<tr><td colspan=2 class=\"smalltext\">&nbsp</td></tr>"
-			matches_list_output += "<tr><th colspan=5><a href=\"#\" onclick=\"openFullscreen()\"><img width=\"500px\" src=\"MADColoured1.png\"></a></th></tr>";
-			matches_list_output += "<tr><th colspan=5>Current Matches</th></tr>";
+	//Write html for current matches (only those with a station id assigned)
+	matches_list_output = "<center><table>";
+	matches_list_output += "<tr><th colspan=5><a href=\"#\" onclick=\"openFullscreen()\"><img width=\"500px\" src=\"MADColoured1.png\"></a></th></tr>";
+	matches_list_output += "<tr><th colspan=5>Current Matches</th></tr>";
 
-			for(const x in current_matches){
-				console.log(current_matches[x].start_time);
-				matches_list_output += "<tr><td class=\"round\">" + current_matches[x].round + "</td>" +
-															 "<td class=\"player\" style=\"text-align: right\">" + current_matches[x].play1_name + " [" + current_matches[x].play1_seed + "]</td>" +
-															 "<td style=\"width: 20px; text-align: center\"> vs. </td>" +
-															 "<td class=\"player\">[" + current_matches[x].play2_seed + "] " + current_matches[x].play2_name + "</td>" +
-															 "<td class=\"station\">Station: " + current_matches[x].station + "</td></tr>";
-			}
+	for(const x in current_matches){
+		let player_class = "";
+		let round_class = "";
+		let station_class = "";
+		let vs_class = "";
+		let tempIndex = 0;
+		//console.log(current_matches[x].start_time);
+		if(current_matches[x].time_elapsed < NEW_MATCH_TIME){
+			player_class = "\"player new_match\"";
+			round_class = "\"round new_match\"";
+			station_class = "\"station new_match\"";
+			vs_class = "\"new_match\"";
+		}
+		else if (current_matches[x].time_elapsed > STALE_MATCH_TIME){
+			player_class = "\"player stale_match\"";
+			round_class = "\"round stale_match\"";
+			station_class = "\"station stale_match\"";
+			vs_class = "\"stale_match\"";
+		}
+		else {
+			player_class = "\"player\"";
+			round_class = "\"round\"";
+			station_class = "\"station\"";
+			vs_class = "";
+		}
 
-			console.table(current_matches);
+		tempIndex = persistent_match_data.findIndex(b => b.match_id == current_matches[x].id);
+		matches_list_output += "<tr><td class=" + round_class + ">" + persistent_match_data[tempIndex].round + "</td>" +
+													 "<td class=" + player_class + " style=\"text-align: right\"> " + current_matches[x].play1_name + " [" + current_matches[x].play1_seed + "]</td>" +
+													 "<td class=" + vs_class + " style=\"width: 20px; text-align: center\"> vs. </td>" +
+													 "<td class=" + player_class + ">[" + current_matches[x].play2_seed + "] " + current_matches[x].play2_name + "</td>" +
+													 "<td class=" + station_class + ">Station: " + current_matches[x].station + "</td></tr>";
+	}
 
-/*			for (const x in matches_array) {
-				let match_round = 0;
-				if(matches_array[x].station != "Z"){
-					matches_list_output += "<tr><td class=\"round\">" + matches_array[x].round + "</td>" +
-																 "<td class=\"player\" style=\"text-align: right\">" + matches_array[x].play1_name + " [" + matches_array[x].play1_seed + "]</td>" +
-																 "<td style=\"width: 20px; text-align: center\"> vs. </td>" +
-																 "<td class=\"player\">[" + matches_array[x].play2_seed + "] " + matches_array[x].play2_name + "</td>" +
-																 "<td class=\"station\">Station: " + matches_array[x].station + "</td></tr>";
+	upcoming_matches.sort((a, b) => (a.sugg_order > b.sugg_order) ? 1 : -1);
+
+	//Write html for upcoming matches (open matches with no station id assigned)
+	matches_list_output += "<tr>";
+	matches_list_output += "<tr><td colspan=5 style=\"text-align: center; padding: 10px; font-weight: bold\"></td></tr>";
+	matches_list_output += "<tr><th colspan=5>On Deck</th></tr>";
+
+	let j = 0;
+	for (const y in upcoming_matches) {
+				tempIndex = persistent_match_data.findIndex(b => b.match_id == upcoming_matches[y].id);
+				let z = j+1;
+				if(j%2 == 0 && j < 6){
+					matches_list_output += "<tr><td colspan=2 class=\"smalltext\" style=\"padding-left: 60px\">" + z + " - " +
+																 persistent_match_data[tempIndex].short_round + " - " + upcoming_matches[y].play1_name + " [" + upcoming_matches[y].play1_seed + "]" +
+																 " vs. " + upcoming_matches[y].play2_name + " [" + upcoming_matches[y].play2_seed + "]</td><td class=\"smalltext\"></td>";
 				}
-			}
-*/
-			//Sort current matches by suggested play order
-			matches_array.sort((a, b) => (a.sugg_order > b.sugg_order) ? 1 : -1);
-
-			//console.table(upcoming_matches);
-			upcoming_matches.sort((a, b) => (a.sugg_order > b.sugg_order) ? 1 : -1);
-			//console.table(upcoming_matches);
-
-
-			//Write html for upcoming matches (open matches with no station id assigned)
-			matches_list_output += "<tr>";
-			matches_list_output += "<tr><td colspan=5 style=\"text-align: center; padding: 10px; font-weight: bold\"></td></tr>";
-			matches_list_output += "<tr><th colspan=5>On Deck</th></tr>";
-
-			let j = 0;
-			for (const y in upcoming_matches) {
-						let z = j+1;
-						if(j%2 == 0 && j < 6){
-							matches_list_output += "<tr><td colspan=2 class=\"smalltext\" style=\"padding-left: 100px\">" + z + " - " +
-																		 upcoming_matches[y].short_round + " - " + upcoming_matches[y].play1_name + " [" + upcoming_matches[y].play1_seed + "]" +
-																		 " vs. " + upcoming_matches[y].play2_name + " [" + upcoming_matches[y].play2_seed + "]</td><td class=\"smalltext\"></td>";
-						}
-						if(j%2 == 1 && j < 6){
-							matches_list_output += "<td colspan=2 class=\"smalltext\" style=\"padding-left: 100px\">" + z + " - " +
-																		 upcoming_matches[y].short_round + " - " + upcoming_matches[y].play1_name + " [" + upcoming_matches[y].play1_seed + "]" +
-																		 " vs. " + upcoming_matches[y].play2_name + " [" + upcoming_matches[y].play2_seed + "]</td></tr>";
-						}
-						j++;
-			}
-
-	/*		//let j = 0;
-			for (const y in matches_array) {
-				if(matches_array[y].station == "Z"){
-						let z = j+1;
-						if(j%2 == 0 && j < 6){
-							matches_list_output += "<tr><td colspan=2 class=\"smalltext\" style=\"padding-left: 100px\">" + z + " - " +
-																		 matches_array[y].short_round + " - " + matches_array[y].play1_name + " [" + matches_array[y].play1_seed + "]" +
-																		 " vs. " + matches_array[y].play2_name + " [" + matches_array[y].play2_seed + "]</td><td class=\"smalltext\"></td>";
-						}
-						if(j%2 == 1 && j < 6){
-							matches_list_output += "<td colspan=2 class=\"smalltext\" style=\"padding-left: 100px\">" + z + " - " +
-																		 matches_array[y].short_round + " - " + matches_array[y].play1_name + " [" + matches_array[y].play1_seed + "]" +
-																		 " vs. " + matches_array[y].play2_name + " [" + matches_array[y].play2_seed + "]</td></tr>";
-						}
-						j++;
+				if(j%2 == 1 && j < 6){
+					matches_list_output += "<td colspan=2 class=\"smalltext\" style=\"padding-left: 60px\">" + z + " - " +
+																 persistent_match_data[tempIndex].short_round + " - " + upcoming_matches[y].play1_name + " [" + upcoming_matches[y].play1_seed + "]" +
+																 " vs. " + upcoming_matches[y].play2_name + " [" + upcoming_matches[y].play2_seed + "]</td></tr>";
 				}
-			}
-*/
-			matches_list_output += "<tr><td colspan=5 style=\"text-align: center; padding: 6px\"></td></tr>";
-			matches_list_output += "</table>";
+				j++;
+	}
+
+	matches_list_output += "<tr><td colspan=5 style=\"text-align: center; padding: 6px\"></td></tr>";
+	matches_list_output += "</table>";
+}
+
+function finishMatchInfo() {
+		if(!matches_array.length) {
+			generatePreStartPage();
+		}
+		else {
+			generatePostStartPage();
 		}
 
 		document.getElementById("matchlist").innerHTML = matches_list_output;
-
-		//console.timeEnd("outputsort");
 }
 
 async function pageLoad() {
-    await Promise.all([getPlayers(), getMatches()]);
+    current_time = Math.floor(Date.now() / 1000);
+		first_runtime = 0;
+		await getNumMatches();
+		await Promise.all([getPlayers(), getOpenMatches()]);
 		await getBracketAssignStations();
 		finishMatchInfo();
 }
 
 async function pL() {
-		await Promise.all([getPlayers(), getMatches()]);
+		current_time = Math.floor(Date.now() / 1000);
+		await getNumMatches();
+		await Promise.all([getPlayers(), getOpenMatches()]);
 		await getBracketAssignStations();
 		finishMatchInfo();
 		setInterval(pageLoad, 5000);
 }
-    //Promise.all([getPlayers(), getMatches()]).then(() => {
+    //Promise.all([getPlayers(), getOpenMatches()]).then(() => {
       // players and matches is available
       // getGames().then(() => {
       // });
