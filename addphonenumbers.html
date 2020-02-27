@@ -63,8 +63,15 @@
 </style>
 <meta charset="UTF-8">
 <title>MAD Smash STL</title>
-
+<script src="jquery.min.js"></script>
+<script src="sheetrock.min.js"></script>
 <script>
+  /*
+  $("#my-table").sheetrock({
+    url: "https://docs.google.com/spreadsheets/d/1qT1LyvoAcb0HTsi2rHBltBVpUBumAUzT__rhMvrz5Rk/edit#gid=0",
+    query: "select A,B,C,D,E,L where E = 'Both' order by L desc"
+  });
+  */
 
 let pgoutput = "";
 let matches_array = [0];
@@ -73,12 +80,13 @@ let station_array = [];
 let bstring = "hi";
 let x = 0;
 const API_KEY = "api_key=smrZWnrWB7KTLwRc7ZvllT0wjaw3nA3CIkCUwZJt";
-const TOURNAMENT_ID = "b697b0wu";
+const TOURNAMENT_ID = "scyctest01";
+const CHAL_URL = "https://api.challonge.com/v1/tournaments/" + TOURNAMENT_ID + "/participants/";
 
-/* Get the documentElement (<html>) to display the page in fullscreen */
-var elem = document.documentElement;
-
-/* View in fullscreen */
+/******************************************************************************
+Fullscreen toggle code
+******************************************************************************/
+// View in fullscreen
 function openFullscreen() {
   if (elem.requestFullscreen) {
     elem.requestFullscreen();
@@ -90,8 +98,7 @@ function openFullscreen() {
     elem.msRequestFullscreen();
   }
 }
-
-/* Close fullscreen */
+// Close fullscreen
 function closeFullscreen() {
   if (document.exitFullscreen) {
     document.exitFullscreen();
@@ -103,21 +110,8 @@ function closeFullscreen() {
     document.msExitFullscreen();
   }
 }
-
-class MatchObj {
-    constructor(id, p1_id, p2_id, state, suggested_order, p1_name, p2_name, p1_seed, p2_seed, station) {
-        this.match_id = id;
-        this.match_play1_id = p1_id;
-        this.match_play2_id = p2_id;
-        this.match_play1_name = p1_name;
-        this.match_play2_name = p2_name;
-        this.match_play1_seed = p1_seed;
-        this.match_play2_seed = p2_seed;
-        this.match_state = state;
-        this.match_station = station = 0;
-				this.match_sugg_order = suggested_order;
-    }
-}
+/******************************************************************************
+******************************************************************************/
 
 class PlayerObj {
     constructor(id, name, seed, misc) {
@@ -137,18 +131,14 @@ function getPlayers() {
           })
           .then((playerJson) => {
               //console.log(playerJson);
+              players_array = [];
               for (const x in playerJson) {
-                  const newPlayer = new PlayerObj(
+                players_array.push(new PlayerObj(
                     playerJson[x].participant.id,
                     playerJson[x].participant.name,
                     playerJson[x].participant.seed,
-										playerJson[x].participant.misc
-                  );
-
-									//Write player name and seet to players_array (index is the player id from Challonge)
-                  //players_array[playerJson[x].participant.id] = newPlayer;
-                  players_array[x] = newPlayer;
-                  //console.table(players_array);
+                    playerJson[x].participant.misc
+                ));
               }
 
               console.time("sort");
@@ -163,165 +153,90 @@ function getPlayers() {
     });
 }
 
-//Get List of all "Open" matches
-//state=all or state=open
-function getMatches() {
-  return new Promise((resolve, reject) => {
-    fetch('https://api.challonge.com/v1/tournaments/' + TOURNAMENT_ID + '/matches.json?state=open&' + API_KEY)
-        .then(response => response.json())
-        .then((myJson) => {
-            //console.log(myJson);
-						matches_array = [];
-            for (const x in myJson) {
-                //constructor(id, p1_id, p2_id, p1_name, p2_name, p1_seed, p2_seed, state, station, suggested_order) {
-                matches_array.push(new MatchObj(myJson[x].match.id, myJson[x].match.player1_id, myJson[x].match.player2_id, myJson[x].match.state, myJson[x].match.suggested_play_order));
-								//console.log(myJson[x].match.suggested_play_order);
-            }
-					  resolve();
-        });
-  });
-}
-
-function getBracketAssignStations(){
-	return new Promise((resolve, reject) => {
-		//Get bracket layout from challonge
-		fetch('https://challonge.com/' + TOURNAMENT_ID)
-				.then(response => response.text())
-				.then(s2s => {
-					let re = new RegExp("Station (.*?),\"tournament_id", "g");
-					let reStation = new RegExp("^[A-Z]");
-					let reMatch = new RegExp("[0-9]+$");
-					let reResult = "";
-					let stat = "";
-					let match = "";
-					let mIndex = 0;
-					//Copy station extract into matches_array
-					while ((reResult = re.exec(s2s)) != null){
-						//console.log(reResult);
-						match = reMatch.exec(reResult[1])[0];
-						stat = reStation.exec(reResult[1])[0];
-						mIndex = matches_array.findIndex(x => x.match_id == match);
-						matches_array[mIndex].match_station = stat;
-					}
-					resolve();
-				});
-	});
-}
-
 function displayPlayers() {
-    let chal_url = "https://api.challonge.com/v1/tournaments/" + TOURNAMENT_ID + "/participants/";
+
 
 		if(!players_array.length) {
 			console.log("No Players Registered");
 			pgoutput = "<center><table>";
-			pgoutput += "<tr><th colspan=4><a href=\"#\" onclick=\"openFullscreen()\"><img src=\"MAD.png\"></a></th></tr>";
+			pgoutput += "<tr><th colspan=4><a href=\"#\" onclick=\"openFullscreen()\"><img width=\"300\" src=\"MADColoured1.png\"></a></th></tr>";
 			pgoutput += "<tr><th colspan=4>No Players Registered</th></tr>";
     }
     else {
 			let j = 0;
       pgoutput = "<center><table>";
-			pgoutput += "<tr><th colspan=5><a href=\"#\" onclick=\"openFullscreen()\"><img src=\"MAD.png\"></a></th></tr>";
+			pgoutput += "<tr><th colspan=5><a href=\"#\" onclick=\"openFullscreen()\"><img width=\"300\" src=\"MADColoured1.png\"></a></th></tr>";
 			pgoutput += "<tr><th colspan=5>Registered Players</th></tr><tr><td class=\"regplayers\"></td></tr>";
 
 			for (const y in players_array) {
 
         let pid = players_array[y].player_id;
-        let chal_submit_url = chal_url + pid + ".json?" + API_KEY;
-			     pgoutput += "<tr><td colspan=1 class=\"regplayers\">" + players_array[y].player_name + "</td>" +
-                       "<td colspan=1 class=\"regplayers\">" +
-                       "<form id=\"" + pid + "\" action=\"" + chal_submit_url + "\"><input type=\"text\" size=\"10\" name=\"misc\"><input type=\"submit\" value=\"Save\"></form></td>"
+			     pgoutput += "<tr><td class=\"regplayers\">" + players_array[y].player_name + "</td>" +
+                       "<td class=\"regplayers\">" +
+                       "<form id=\"" + pid + "\" onsubmit=\"return false;\" method=\"post\">" +
+                       "<input type=\"text\" readonly=\"readonly\"            size=\"10\" id=\"" + pid + "_id\" value=\"" + pid + "\">&nbsp" +
+                       "<input type=\"text\" pattern=\"[0-9]+([-\,][0-9]+)?\" size=\"10\" id=\"" + pid + "_phone\">&nbsp" +
+                       "<input type=\"submit\" value=\"Save\" onclick=\"submitPhoneNumber(" + pid + ")\"></form></td>" +
                        "<td colspan=1 class=\"regplayers\"></td></tr>";
 
-				//}
+				//}\"submitPhoneNumber(this)\"
 			}
 			pgoutput += "<tr><td colspan=4 style=\"text-align: center; padding: 6px\"></td></tr>";
 			pgoutput += "</table>";
 		}
 
-/*		else {
-			//console.time("outputsort");
-			//Populate Match Array with player names and seeds
-			for (const x in matches_array) {
-	    	matches_array[x].match_play1_name = players_array[matches_array[x].match_play1_id].player_name;
-		    matches_array[x].match_play1_seed = players_array[matches_array[x].match_play1_id].player_seed;
-		    matches_array[x].match_play2_name = players_array[matches_array[x].match_play2_id].player_name;
-		    matches_array[x].match_play2_seed = players_array[matches_array[x].match_play2_id].player_seed;
-			}
-
-			//Sort current matches array by station id
-			matches_array.sort((a, b) => (a.match_station > b.match_station) ? 1 : -1);
-
-			//Write html for current matches (only those with a station id assigned)
-			pgoutput = "<center><table>";
-			pgoutput += "<tr><th colspan=4><a href=\"#\" onclick=\"openFullscreen()\"><img src=\"MAD.png\"></a></th></tr>";
-			pgoutput += "<tr><th colspan=4>Current Matches</th></tr>";
-
-			for (const x in matches_array) {
-				if(matches_array[x].match_station != 0){
-					pgoutput += "<tr><td class=\"player\">" + matches_array[x].match_play1_name + " [" + matches_array[x].match_play1_seed +
-					"] </td><td style=\"width: 20px; text-align: center\"> vs. </td><td class=\"player\">" + matches_array[x].match_play2_name + " [" +
-					matches_array[x].match_play2_seed + "]</td><td class=\"station\">Station: " + matches_array[x].match_station + "</td></tr>";
-				}
-			}
-
-			//Sort current matches by suggested play order
-			matches_array.sort((a, b) => (a.match_sugg_order > b.match_sugg_order) ? 1 : -1);
-
-			//Write html for upcoming matches (open matches with no station id assigned)
-			pgoutput += "<tr>";
-			pgoutput += "<tr><td colspan=4 style=\"text-align: center; padding: 10px; font-weight: bold\"></td></tr>";
-			pgoutput += "<tr><td colspan=4 style=\"text-align: center; padding: 6px; font-weight: bold\">Upcoming Matches</td></tr>";
-
-			let j = 0;
-			for (const y in matches_array) {
-				if(matches_array[y].match_station == 0){
-						if(j%2 == 0 && j < 24){
-							pgoutput += "<tr><td colspan=2 class=\"smalltext\" style=\"padding-left: 5px\">" + matches_array[y].match_play1_name + " [" + matches_array[y].match_play1_seed +
-							"] vs. " + matches_array[y].match_play2_name + " [" +
-							matches_array[y].match_play2_seed + "]</td>";
-						}
-						if(j%2 == 1 && j < 24){
-							pgoutput += "<td colspan=2 class=\"smalltext\" style=\"padding-left: 50px\">" + matches_array[y].match_play1_name + " [" + matches_array[y].match_play1_seed +
-							"] vs. " + matches_array[y].match_play2_name + " [" +
-							matches_array[y].match_play2_seed + "]</td></tr>";
-						}
-						j++;
-				}
-			}
-
-			pgoutput += "<tr><td colspan=4 style=\"text-align: center; padding: 6px\"></td></tr>";
-			pgoutput += "</table>";
-		}
-*/
 		document.getElementById("matchlist").innerHTML = pgoutput;
+}
 
-		//console.timeEnd("outputsort");
+submitPhoneNumber = function(pid){
+  let pidst = pid + "_id";
+  let pphst = pid + "_phone";
+  let player_id = document.getElementById(pidst).value;
+  let player_phone = document.getElementById(pphst).value;
+  console.log(player_id + " " + player_phone);
+
+  let chal_submit_url = CHAL_URL + pid + ".json?" + API_KEY;
+
+  let phone_string = JSON.stringify({
+    "participant" : {
+    "misc": player_phone
+    }
+  });
+
+  const putMethod = {
+   method: 'POST', // Method itself
+   _method: 'PUT',
+   headers: {'Content-type': 'application/json; charset=UTF-8'}, // Indicates the content
+   body: phone_string // We send data in JSON format
+  }
+
+  /*fetch(chal_submit_url, putMethod)
+    .then((response) => { response.json();})
+    .then((data) => { console.log(data);}) // Manipulate the data retrieved back, if we want to do something with it
+    .catch((err) => {console.log(err);}) // Do something with the error
+*/
+  let xhr = new XMLHttpRequest();
+  xhr.withCredentials = true;
+  xhr.open("PUT", chal_submit_url, true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.send(phone_string);
+
+
 }
 
 async function pageLoad() {
-    await Promise.all([getPlayers(), getMatches()]);
+    await Promise.all([getPlayers()]);
 		//await getBracketAssignStations();
 		displayPlayers();
 }
 
 async function pL() {
-		await Promise.all([getPlayers(), getMatches()]);
+		await Promise.all([getPlayers()]);
 		//await getBracketAssignStations();
 		displayPlayers();
 		//setInterval(pageLoad, 5000);
 }
-    //Promise.all([getPlayers(), getMatches()]).then(() => {
-      // players and matches is available
-      // getGames().then(() => {
-      // });
-    //});
 
-		/*
-		async function getData() {
-		  const res = await fetch('https://api.challonge.com/v1/tournaments/b697b0wu/participants.json?api_key=smrZWnrWB7KTLwRc7ZvllT0wjaw3nA3CIkCUwZJt');
-			const json = res.json();
-			return json;
-		}*/
 
 
 </script>
