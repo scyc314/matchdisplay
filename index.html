@@ -135,17 +135,22 @@ Variables to be updated by user
 ******************************************************************************/
 //Challonge API key, make sure prefixed with "apikey="
 const API_KEY = "api_key=smrZWnrWB7KTLwRc7ZvllT0wjaw3nA3CIkCUwZJt";
+
 //Challonge tournament id
 const TOURNAMENT_ID = "scyctest01";
+
 //Time in seconds after match is assigned a station that it is considered
 //"New" for purposes of flashing in the matches display
 const NEW_MATCH_TIME = 180;
+
 //Time in seconds after match is assigned a station that it is considered
 //"Stale" for purposes of flashing in the matches display
 const STALE_MATCH_TIME = 900;
+
 //Number of refresh cycles before pre-start display alternates between
 //registered players display and past winners display
 const PRE_START_CYCLE_RATE = 2;
+
 //Time in seconds between requests to Challonge and update of display
 //This value should be a multiple of 5 to sync with the flashing row timing
 const REFRESH_RATE = 5;
