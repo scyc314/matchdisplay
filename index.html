@@ -44,6 +44,16 @@
 		animation-duration: 2.5s;
 		animation-iteration-count: infinite;
 	}
+	.new_match {
+		animation-name: new_match_animation;
+		animation-duration: 2.5s;
+		animation-iteration-count: infinite;
+	}
+	.stale_match {
+		animation-name: stale_match_animation;
+		animation-duration: 2.5s;
+		animation-iteration-count: infinite;
+	}
 	.station {
 		font-size: 1.8em;
 		text-align: right;
@@ -313,6 +323,7 @@ function getPlayers() {
 										playerJson[x].participant.misc
                 ));
               }
+
 
               resolve();
               //  })
